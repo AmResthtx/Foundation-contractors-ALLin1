@@ -18,6 +18,10 @@ every completed item must add sources to `sources.md` with trace IDs.
 - **R-5** — Harris County / City of Spring permitting requirements for residential
   foundation repair with helical piers (which permits, when engineer-sealed drawings
   are required). Sources: Harris County Engineering, City of Houston if inside city ETJ.
+  *Partial: RSS watcher for HGSD + local news shipped in `hermes/index.js`
+  (2026-07-02); permitting-requirements research and a county permit feed still open.
+  Verify the default feed URLs resolve on first daemon run (couldn't be confirmed from
+  the dev sandbox — its network blocks those hosts).*
 - **R-6** — IBC/IRC sections governing helical piles (IBC 1810; deep foundation
   provisions) + current Texas adopted editions for unincorporated Harris County.
 - **R-7** — Corrosion/design-life data for local soil conditions (resistivity, pH) —
@@ -28,6 +32,9 @@ every completed item must add sources to `sources.md` with trace IDs.
   we install — needed later for the payment-blocking torque-log verification (Policy 6).
 - **R-10** — FRED API integration notes: endpoints, API key signup, series update
   schedule for WPU101704 / PCU33123312 (prep for Industry Monitor agent).
+  *Mostly done 2026-07-02: shipped using the keyless `fredgraph.csv` endpoint and
+  confirmed working in production Docker. Remaining: swap to the keyed FRED API if
+  the CSV endpoint ever rate-limits or breaks.*
 
 ## Done
 - ✅ 2026-07-02 — Source registry seeded (`sources.md`, SRC-001…034).

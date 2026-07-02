@@ -46,6 +46,31 @@ async function alert(agent, msg) {
   }
 }
 
+// Escalation to Ellis (Policy 4/5): audit log + webhook + email via Web3Forms
+// when WEB3FORMS_KEY is set (recipient is configured in the Web3Forms account).
+async function escalate(agent, msg) {
+  log('escalation', agent, msg);
+  await alert(agent, `[ESCALATION] ${msg}`);
+  const key = process.env.WEB3FORMS_KEY;
+  if (key && key !== 'your_key') {
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          access_key: key,
+          subject: `[Hermes escalation] ${agent}`,
+          from_name: 'Hermes orchestrator',
+          message: msg,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      log('error', agent, `escalation email failed: ${err.message}`);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Jobs
 // ---------------------------------------------------------------------------
@@ -100,10 +125,82 @@ async function steelPpiCheck() {
   }
 }
 
+// Local events watcher (backlog R-5). RSS/Atom feeds, no dependencies:
+// a tolerant regex parse is enough for title/link dedup. Watch list context
+// lives in hermes/research/local-monitoring.md.
+const DEFAULT_FEEDS = [
+  'https://hgsubsidence.org/feed/', // Harris-Galveston Subsidence District (SRC-030)
+  'https://communityimpact.com/houston/spring-klein/feed/', // local Spring/Klein news
+];
+const LOCAL_FEEDS = (process.env.LOCAL_FEEDS || DEFAULT_FEEDS.join(','))
+  .split(',')
+  .map((u) => u.trim())
+  .filter(Boolean);
+// Titles matching this trigger an alert — events that make helical piers
+// timely (POLICIES.md Policy 3).
+const URGENT_RE = /sinkhole|subsidence|foundation|collapse|ground\s*fail|settlement/i;
+const SEEN_CAP = 200;
+
+function parseFeedItems(xml) {
+  const items = [];
+  const blocks = xml.match(/<(?:item|entry)[\s>][\s\S]*?<\/(?:item|entry)>/gi) || [];
+  for (const block of blocks) {
+    const pick = (tag) => {
+      const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+      return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : '';
+    };
+    const linkAttr = block.match(/<link[^>]*href="([^"]+)"/i); // Atom-style
+    const link = pick('link') || (linkAttr ? linkAttr[1] : '');
+    const title = pick('title');
+    if (title && link) items.push({ title, link, date: pick('pubDate') || pick('updated') });
+  }
+  return items;
+}
+
 async function localMonitoringCheck() {
-  // Watch list lives in hermes/research/local-monitoring.md; automating the
-  // HGSD / Harris County / Texas811 feeds is backlog R-5/R-10.
-  log('info', 'industry-monitor', 'local monitoring feeds not implemented yet (backlog R-5/R-10)');
+  const stateFile = path.join(DATA_DIR, 'feeds-seen.json');
+  const seen = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8')) : {};
+  let feedFailures = 0;
+
+  for (const feedUrl of LOCAL_FEEDS) {
+    try {
+      const res = await fetch(feedUrl, {
+        headers: { 'user-agent': 'hermes-industry-monitor/0.1 (local events watch)' },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const items = parseFeedItems(await res.text());
+      if (items.length === 0) throw new Error('no items parsed (feed format changed?)');
+
+      const firstSight = !seen[feedUrl];
+      const known = new Set(seen[feedUrl] || []);
+      for (const item of items) {
+        if (known.has(item.link)) continue;
+        known.add(item.link);
+        // First sight of a feed seeds state silently — no alert storm on
+        // historical items.
+        if (firstSight) continue;
+        log('info', 'industry-monitor', `new local item: "${item.title}" ${item.link}`);
+        if (URGENT_RE.test(item.title)) {
+          await alert(
+            'industry-monitor',
+            `Local event watch hit: "${item.title}" (${item.date || 'no date'}) ${item.link} — potential timely-content opportunity per Policy 3. Permission check required before public use.`
+          );
+        }
+      }
+      if (firstSight) {
+        log('info', 'industry-monitor', `seeded feed ${feedUrl} (${items.length} items)`);
+      }
+      seen[feedUrl] = [...known].slice(-SEEN_CAP);
+    } catch (err) {
+      feedFailures++;
+      log('error', 'industry-monitor', `feed ${feedUrl} failed: ${err.message}`);
+    }
+  }
+
+  fs.writeFileSync(stateFile, JSON.stringify(seen, null, 2));
+  if (feedFailures === LOCAL_FEEDS.length && LOCAL_FEEDS.length > 0) {
+    throw new Error('all local feeds failed'); // let the runner's failure counter see it
+  }
 }
 
 const JOBS = [
@@ -126,6 +223,7 @@ async function runJob(job) {
     log('error', job.name, `failed (${job.failures}x): ${err.message}`);
     if (job.failures >= MAX_CONSECUTIVE_FAILURES) {
       log('fatal', job.name, `exceeded ${MAX_CONSECUTIVE_FAILURES} consecutive failures; exiting for restart`);
+      await escalate(job.name, `Job "${job.name}" failed ${MAX_CONSECUTIVE_FAILURES}x in a row (last: ${err.message}). Process is restarting; investigate if this repeats.`);
       process.exit(1);
     }
   }
@@ -157,10 +255,11 @@ function runDaemon() {
   // Self-watchdog: a hung job stops updating lastFinish; exit so the
   // restart policy replaces the whole process. Docker's HEALTHCHECK only
   // marks the container unhealthy — this is what actually restarts it.
-  setInterval(() => {
+  setInterval(async () => {
     for (const job of JOBS) {
       if (Date.now() - job.lastFinish > job.staleAfterMs) {
         log('fatal', 'orchestrator', `watchdog: job "${job.name}" stale; exiting for restart`);
+        await escalate('orchestrator', `Watchdog restart: job "${job.name}" went stale (no completion in ${Math.round(job.staleAfterMs / 3_600_000)}h).`);
         process.exit(1);
       }
     }
@@ -183,8 +282,12 @@ process.on('unhandledRejection', (err) => {
   process.exit(1);
 });
 
-if (process.argv.includes('--once')) {
-  runOnce();
-} else {
-  runDaemon();
+if (require.main === module) {
+  if (process.argv.includes('--once')) {
+    runOnce();
+  } else {
+    runDaemon();
+  }
 }
+
+module.exports = { parseFeedItems };

@@ -51,7 +51,7 @@ rebuilds don't lose them: `data/audit.log` (every action, Policy 2), `data/heart
 |---|---|---|
 | `heartbeat` | 60s | Touches `data/heartbeat` (feeds the health check) |
 | `steel-ppi` | daily | Pulls FRED `WPU101704` / `PCU33123312`; logs new monthly observations; alerts `CRM_WEBHOOK_URL` when a move ≥ `PPI_ALERT_PCT` (default 5%) |
-| `local-monitoring` | daily | Placeholder — logs a reminder until backlog R-5/R-10 automate the HGSD/county feeds |
+| `local-monitoring` | daily | Watches local RSS feeds (`LOCAL_FEEDS`, default HGSD + Community Impact Spring/Klein); logs new items, alerts on urgent keywords (sinkhole, subsidence, foundation, …). First sight of a feed seeds state silently — no alert storm on history. |
 
 ## Talking to Hermes
 
@@ -62,6 +62,10 @@ There is no chat interface yet — today communication is file- and webhook-base
 - Alerts: `"level":"alert"` entries are also POSTed to `CRM_WEBHOOK_URL` as JSON
   (`{source, agent, msg, ts}`). Point that at an n8n workflow to fan out to
   email/SMS/Slack — that's the intended "Hermes pings Ellis" channel.
+- Escalations (`"level":"escalation"`): repeated job failures and watchdog
+  restarts additionally send an email through Web3Forms when `WEB3FORMS_KEY`
+  is set (recipient = the email tied to your Web3Forms account). This is the
+  Policy 4 "repeat offenders escalate to Ellis" path.
 
 **You → Hermes**
 - `.env`: behavior knobs (e.g. `PPI_ALERT_PCT`); restart the container to apply.

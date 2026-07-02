@@ -60,7 +60,7 @@ with every output traceable to authoritative sources and gated before publicatio
 | # | Component | Status |
 |---|---|---|
 | 1 | Research KB + source registry | ✅ seeded (`hermes/research/`) — continue via backlog |
-| 2 | Industry monitor (FRED/PPI + local feeds) | 🚧 PPI check implemented (`hermes/index.js`); local feeds pending (R-5/R-10) |
+| 2 | Industry monitor (FRED/PPI + local feeds) | ✅ PPI check running in production; RSS local-events watcher shipped (verify feed URLs on first run) |
 | 3 | Content pipeline + Policy 2 gate | not started |
 | 4 | Lead scorer + CRM webhook | not started |
 | 5 | Fidelity auditor | not started |

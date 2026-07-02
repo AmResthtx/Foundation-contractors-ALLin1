@@ -1,0 +1,42 @@
+{
+  "name": "Hermes → Telegram notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hermes-inbox",
+        "options": {}
+      },
+      "name": "Hermes Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_YOUR_CHAT_ID",
+        "text": "={{ ($json.body.msg && $json.body.msg.startsWith('[ESCALATION]') ? '🚨 ' : '🔔 ') + 'Hermes / ' + ($json.body.agent || 'system') + '\\n\\n' + ($json.body.msg || JSON.stringify($json.body)) + '\\n\\n' + ($json.body.ts || '') }}",
+        "additionalFields": {}
+      },
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [520, 300]
+    }
+  ],
+  "connections": {
+    "Hermes Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "pinData": {}
+}

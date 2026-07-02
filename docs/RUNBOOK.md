@@ -85,6 +85,15 @@ There is no chat interface yet — today communication is file- and webhook-base
 A two-way command channel (reply-by-email or a small CLI, per the escalation design in
 `docs/AGENT_STACK.md`) is a build item for the orchestrator-wiring phase.
 
+## n8n (alerts → Telegram, later social publishing)
+
+Runs as a second compose service with the same `restart: unless-stopped` policy; UI
+at http://localhost:5678 (local machine only). Workflows + encrypted credentials
+persist in `./n8n-data/`. Setup and troubleshooting: `docs/N8N_TELEGRAM_SETUP.md`.
+If Telegram messages stop: `docker compose logs n8n` and check the workflow's
+execution history in the UI — Hermes-side webhook errors show in `data/audit.log`
+as `webhook alert failed`.
+
 ## What is NOT durable
 
 Anything scheduled inside a Claude Code chat session (PR check-ins, reminders) dies with

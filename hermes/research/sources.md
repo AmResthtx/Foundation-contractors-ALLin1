@@ -39,5 +39,13 @@ Format: `SRC-###` | source | class | URL | notes
 - **SRC-045** | Texas Register RSS (Texas SOS) | Government | https://www.sos.state.tx.us/texreg/texreg.xml | Weekly issue feed, statewide rulemaking incl. TCEQ/TWDB; URL confirmed by Ellis 2026-07-02. SOS press-release feed also exists (`/rss/press.xml`) — not watched, mostly elections/filings
 - **SRC-046** | Community Impact — Houston edition | Recognized news org (hyperlocal) | https://communityimpact.com/houston/ | No working RSS: four candidate URLs 404'd in prod (2026-07-02). Browser-only source; still citable per Policy 1
 
+## Project references (internal only — not Policy-1-approved public sources)
+Not citable externally without project-specific permission (backlog R-4, POLICIES.md
+"Use of Local Projects in Messaging"). Format `PRJ-###` to keep distinct from public
+`SRC-###` sources.
+- **PRJ-001** | Lumberton MUD — 2023 Sewer Collection System Improvements, Matthews Manhole Replacement | Project reference (LJA Engineering, approved 03/07/2024) | provided by Ellis 2026-07-02, local file only | Helical pile support for municipal manhole; 40 kips/pile, 5-pile group; see `helical-pier-project-examples.md`
+- **PRJ-002** | Ward-French Residence (Bellville, TX) — Preliminary Pricing structural set | Project reference (INSIGHT Structures Inc., issued 03/08/2024) | provided by Ellis 2026-07-02, local file only | Residential helical pile design + torque-log inspection spec; reference standard, see `helical-pier-project-examples.md`
+- **PRJ-003** | 12906 Hermitage Lane, Houston — pool foundation plan | Project reference (Dunaway\|BEC, "For Review" 02/09/2024) | provided by Ellis 2026-07-02, local file only | Drilled concrete piers, NOT helical — negative example, see `helical-pier-project-examples.md`
+
 ---
 *Started 2026-07-02. Append new sources with the next free ID in the matching block; never reuse IDs.*

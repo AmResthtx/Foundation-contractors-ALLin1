@@ -29,7 +29,7 @@ timely educational opportunities. Trace IDs refer to `sources.md`.
 | HGSD news, regulatory plan changes, Spring Creek study outputs | hgsubsidence.org (SRC-030, SRC-034) | Monthly |
 | USGS Houston subsidence data updates | webapps.usgs.gov/houston_subsidence (SRC-031) | Quarterly |
 | Harris County Engineering permitting changes | hcus.harriscountytx.gov / eng.harriscountytx.gov | Monthly |
-| Local incidents: sinkholes, foundation failures, road/utility distress | local news + Texas811 activity | Ongoing |
+| Local incidents: sinkholes, foundation failures, road/utility distress | Houston Public Media environment feed (SRC-044, automated) + Texas811 activity | Ongoing |
 | Steel PPI series | FRED WPU101704, PCU33123312 (SRC-020/021) | Monthly |
 
 ## Event log

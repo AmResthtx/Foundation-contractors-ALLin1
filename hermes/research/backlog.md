@@ -39,6 +39,13 @@ every completed item must add sources to `sources.md` with trace IDs.
 - **R-11** — Add Dallas Fed TMOS headline index (FRED `BACTSAMFRBDAL`) to the FRED job
   with diffusion-index-appropriate alerting (sign flips / large point moves, not percent
   change). Context in `statewide-monitoring.md` (SRC-043).
+- **R-12** — Community Impact Spring–Klein feed: both guessed URLs 404 in prod. Open
+  https://communityimpact.com/rss-feeds/ in a browser, grab the real feed URL for the
+  Spring–Klein edition (or confirm none exists), and add it to `LOCAL_FEEDS`.
+- **R-13** — Texas Register weekly RSS: feed exists but exact URL is only listed on
+  https://www.sos.state.tx.us/rss/index.shtml (dev sandbox can't reach it). Grab the
+  URL in a browser and add to `STATEWIDE_FEEDS` — gives us TCEQ/TWDB rulemaking watch
+  (SRC-045).
 
 ## Done
 - ✅ 2026-07-02 — Source registry seeded (`sources.md`, SRC-001…034).

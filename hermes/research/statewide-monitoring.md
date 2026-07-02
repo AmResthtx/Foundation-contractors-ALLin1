@@ -18,8 +18,8 @@ County. Feeds the `statewide-monitoring` job in `hermes/index.js`. Trace IDs ref
 
 | Feed (candidates tried in order) | What it covers | Trace |
 |---|---|---|
-| `feeds.texastribune.org/feeds/main/`, fallback topic feed | Statewide coverage incl. environment/water/groundwater; main feed is the documented URL | SRC-040 |
-| `texaswaternewsroom.org/feed/`, `/articles/feed/`, `/?feed=rss2` | TWDB press releases (their newsroom site); exact WordPress feed path unconfirmed | SRC-041 |
+| `feeds.texastribune.org/feeds/main/` | Statewide coverage incl. environment/water/groundwater — verified in prod 2026-07-02 | SRC-040 |
+| Texas Register weekly feed (pending exact URL, R-13) | Statewide rulemaking: proposed/adopted/emergency rules incl. TCEQ & TWDB | SRC-045 |
 
 Override with `STATEWIDE_FEEDS` in `.env`. Alert keywords are deliberately narrower
 than the local tier (sinkhole, subsidence, foundation, expansive clay/soil) — these
@@ -27,6 +27,9 @@ are high-volume feeds and broad words like "drought" or "water" would be pure no
 
 ## Sources with no RSS (manual/other channel)
 
+- **Texas Water Newsroom** (TWDB press releases): HTML-only, serves no RSS at any
+  standard path — confirmed in prod 2026-07-02 (SRC-041). Browser-check monthly, or
+  revisit if they add a feed.
 - **TCEQ** news releases: email/text subscription only (tceq.texas.gov/news/email.html)
   — subscribe `CRM_EMAIL` manually; no automation path (SRC-042).
 - **Dallas Fed Texas Manufacturing Outlook Survey** (monthly, ~last Monday): headline

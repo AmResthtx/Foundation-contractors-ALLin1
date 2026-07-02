@@ -37,7 +37,7 @@ Format: `SRC-###` | source | class | URL | notes
 - **SRC-043** | Dallas Fed — Texas Manufacturing Outlook Survey | Government | https://www.dallasfed.org/research/surveys/tmos | Monthly; headline index on FRED as `BACTSAMFRBDAL` (diffusion index)
 - **SRC-044** | Houston Public Media (NPR affiliate) | Recognized news org | https://www.houstonpublicmedia.org/topics/environment/feed/ | Environment topic feed + main `/feed/` fallback; used by local watcher
 - **SRC-045** | Texas Register RSS (Texas SOS) | Government | https://www.sos.state.tx.us/texreg/texreg.xml | Weekly issue feed, statewide rulemaking incl. TCEQ/TWDB; URL confirmed by Ellis 2026-07-02. SOS press-release feed also exists (`/rss/press.xml`) — not watched, mostly elections/filings
-- **SRC-046** | Community Impact — Houston edition | Recognized news org (hyperlocal) | https://communityimpact.com/houston/ | Base URL from Ellis; watcher tries `+/feed` candidates per their documented pattern. Spring–Klein sub-edition has no dedicated working feed
+- **SRC-046** | Community Impact — Houston edition | Recognized news org (hyperlocal) | https://communityimpact.com/houston/ | No working RSS: four candidate URLs 404'd in prod (2026-07-02). Browser-only source; still citable per Policy 1
 
 ---
 *Started 2026-07-02. Append new sources with the next free ID in the matching block; never reuse IDs.*

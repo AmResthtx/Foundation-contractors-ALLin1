@@ -141,7 +141,8 @@ function feedsFromEnv(envVar, defaults) {
 const LOCAL_FEEDS = feedsFromEnv('LOCAL_FEEDS', [
   'https://hgsubsidence.org/feed/', // Harris-Galveston Subsidence District (SRC-030) — verified in prod 2026-07-02
   'https://www.houstonpublicmedia.org/topics/environment/feed/|https://www.houstonpublicmedia.org/feed/', // Houston Public Media (SRC-044): environment topic, main feed fallback
-  'https://communityimpact.com/houston/feed|https://communityimpact.com/news/houston/feed', // Community Impact Houston edition (SRC-046): base URL from Ellis + their documented /feed pattern
+  // Community Impact removed 2026-07-02: all four candidate URLs 404 in prod;
+  // publication serves no working RSS (SRC-046) — browser-only source.
 ]);
 const STATEWIDE_FEEDS = feedsFromEnv('STATEWIDE_FEEDS', [
   'https://feeds.texastribune.org/feeds/main/', // documented URL (SRC-040) — verified in prod 2026-07-02

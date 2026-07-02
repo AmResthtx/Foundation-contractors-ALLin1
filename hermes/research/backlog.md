@@ -39,9 +39,14 @@ every completed item must add sources to `sources.md` with trace IDs.
 - **R-11** — Add Dallas Fed TMOS headline index (FRED `BACTSAMFRBDAL`) to the FRED job
   with diffusion-index-appropriate alerting (sign flips / large point moves, not percent
   change). Context in `statewide-monitoring.md` (SRC-043).
-- **R-12** — *(mostly done 2026-07-02)* Community Impact: no working Spring–Klein feed;
-  Ellis supplied the Houston edition base URL, watcher now tries its `/feed` candidates
-  (SRC-046). Verify on next `--once` run; if both candidates 404, drop the source.
+- **R-12** — *(closed 2026-07-02)* Community Impact publishes no working RSS: four
+  candidate URLs (Spring–Klein + Houston edition patterns) all 404'd in prod. Removed
+  from the watcher; remains a browser-only citable source (SRC-046).
+
+- **R-14** — Social media hookup (needs Ellis): stand up n8n (cloud or self-hosted
+  container next to Hermes), connect FB/IG/LinkedIn/X/Google Business Profile in n8n
+  credentials, build the draft→approve→post→callback workflow, and set
+  `CRM_WEBHOOK_URL` to its webhook. Design in `docs/AGENT_STACK.md` §Content Pipeline.
 
 ## Done
 - ✅ 2026-07-02 — Source registry seeded (`sources.md`, SRC-001…034).

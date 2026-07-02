@@ -37,6 +37,23 @@ with every output traceable to authoritative sources and gated before publicatio
   review flag for structural claims → audit log entry. No gate, no publish.
 - Dual citation: visible public attribution + internal `SRC-###` trace ID.
 
+**Social media connection** — Hermes never holds social credentials. The design:
+1. Social profiles (Facebook/Instagram via Meta, LinkedIn, X, Google Business
+   Profile) connect to **n8n** using its built-in social nodes; OAuth tokens live in
+   n8n's credential store, not in this repo or `.env`.
+2. Hermes POSTs drafts to `CRM_WEBHOOK_URL` as JSON
+   (`{type: "social_draft", platform, text, sources: ["SRC-###"], audit_id}`).
+3. n8n runs an **approval step first** (email/telegram to Ellis with
+   approve/reject) — Policy 5: the responder drafts in Ellis's voice, Ellis
+   approves; nothing auto-publishes without a standing, auditable rule.
+4. On approval, n8n posts to the platform and calls back so Hermes records the
+   published URL in the audit log (Policy 5: all auto-sends traceable).
+
+Rationale: one integration instead of four platform APIs, credentials isolated,
+and the approval gate lives where the human already gets notifications. A paid
+scheduler (Buffer/Publer) can replace n8n's posting nodes later without touching
+Hermes — the draft webhook contract stays the same.
+
 ### 4. Lead Scorer / CRM
 - Scores inbound leads on urgency signals; hot leads (immediate structural risk)
   dispatch within 24h (Policy 7). Every score logged with reasoning.

@@ -36,6 +36,10 @@ every completed item must add sources to `sources.md` with trace IDs.
   confirmed working in production Docker. Remaining: swap to the keyed FRED API if
   the CSV endpoint ever rate-limits or breaks.*
 
+- **R-11** — Add Dallas Fed TMOS headline index (FRED `BACTSAMFRBDAL`) to the FRED job
+  with diffusion-index-appropriate alerting (sign flips / large point moves, not percent
+  change). Context in `statewide-monitoring.md` (SRC-043).
+
 ## Done
 - ✅ 2026-07-02 — Source registry seeded (`sources.md`, SRC-001…034).
 - ✅ 2026-07-02 — Generic shaft material specs documented (A252 Gr 3, A500 Gr C,

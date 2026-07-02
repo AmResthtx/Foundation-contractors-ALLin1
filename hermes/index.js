@@ -125,20 +125,31 @@ async function steelPpiCheck() {
   }
 }
 
-// Local events watcher (backlog R-5). RSS/Atom feeds, no dependencies:
-// a tolerant regex parse is enough for title/link dedup. Watch list context
-// lives in hermes/research/local-monitoring.md.
-const DEFAULT_FEEDS = [
+// Events watchers (backlog R-5): RSS/Atom feeds, no dependencies — a
+// tolerant regex parse is enough for title/link dedup. Two tiers with
+// separate watch lists and alert keywords; context in
+// hermes/research/local-monitoring.md and statewide-monitoring.md.
+function feedsFromEnv(envVar, defaults) {
+  return (process.env[envVar] || defaults.join(','))
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean);
+}
+
+const LOCAL_FEEDS = feedsFromEnv('LOCAL_FEEDS', [
   'https://hgsubsidence.org/feed/', // Harris-Galveston Subsidence District (SRC-030)
   'https://communityimpact.com/houston/spring-klein/feed/', // local Spring/Klein news
-];
-const LOCAL_FEEDS = (process.env.LOCAL_FEEDS || DEFAULT_FEEDS.join(','))
-  .split(',')
-  .map((u) => u.trim())
-  .filter(Boolean);
-// Titles matching this trigger an alert — events that make helical piers
-// timely (POLICIES.md Policy 3).
-const URGENT_RE = /sinkhole|subsidence|foundation|collapse|ground\s*fail|settlement/i;
+]);
+const STATEWIDE_FEEDS = feedsFromEnv('STATEWIDE_FEEDS', [
+  'https://www.texastribune.org/topic/environment/feed', // documented topic-feed pattern (SRC-040)
+  'https://texaswaternewsroom.org/feed/', // TWDB press releases (SRC-041)
+]);
+
+// Titles matching these trigger an alert — events that make helical piers
+// timely (POLICIES.md Policy 3). The statewide net is narrower: high-volume
+// general feeds would make broad keywords (drought, water) pure noise.
+const LOCAL_URGENT_RE = /sinkhole|subsidence|foundation|collapse|ground\s*fail|settlement/i;
+const STATEWIDE_URGENT_RE = /sinkhole|subsidence|foundation|expansive\s*(clay|soil)/i;
 const SEEN_CAP = 200;
 
 function parseFeedItems(xml) {
@@ -157,15 +168,15 @@ function parseFeedItems(xml) {
   return items;
 }
 
-async function localMonitoringCheck() {
+async function watchFeeds(scope, feeds, urgentRe) {
   const stateFile = path.join(DATA_DIR, 'feeds-seen.json');
   const seen = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8')) : {};
   let feedFailures = 0;
 
-  for (const feedUrl of LOCAL_FEEDS) {
+  for (const feedUrl of feeds) {
     try {
       const res = await fetch(feedUrl, {
-        headers: { 'user-agent': 'hermes-industry-monitor/0.1 (local events watch)' },
+        headers: { 'user-agent': `hermes-industry-monitor/0.1 (${scope} events watch)` },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const items = parseFeedItems(await res.text());
@@ -179,34 +190,38 @@ async function localMonitoringCheck() {
         // First sight of a feed seeds state silently — no alert storm on
         // historical items.
         if (firstSight) continue;
-        log('info', 'industry-monitor', `new local item: "${item.title}" ${item.link}`);
-        if (URGENT_RE.test(item.title)) {
+        log('info', 'industry-monitor', `new ${scope} item: "${item.title}" ${item.link}`);
+        if (urgentRe.test(item.title)) {
           await alert(
             'industry-monitor',
-            `Local event watch hit: "${item.title}" (${item.date || 'no date'}) ${item.link} — potential timely-content opportunity per Policy 3. Permission check required before public use.`
+            `${scope} event watch hit: "${item.title}" (${item.date || 'no date'}) ${item.link} — potential timely-content opportunity per Policy 3. Permission check required before public use.`
           );
         }
       }
       if (firstSight) {
-        log('info', 'industry-monitor', `seeded feed ${feedUrl} (${items.length} items)`);
+        log('info', 'industry-monitor', `seeded ${scope} feed ${feedUrl} (${items.length} items)`);
       }
       seen[feedUrl] = [...known].slice(-SEEN_CAP);
     } catch (err) {
       feedFailures++;
-      log('error', 'industry-monitor', `feed ${feedUrl} failed: ${err.message}`);
+      log('error', 'industry-monitor', `${scope} feed ${feedUrl} failed: ${err.message}`);
     }
   }
 
   fs.writeFileSync(stateFile, JSON.stringify(seen, null, 2));
-  if (feedFailures === LOCAL_FEEDS.length && LOCAL_FEEDS.length > 0) {
-    throw new Error('all local feeds failed'); // let the runner's failure counter see it
+  if (feedFailures === feeds.length && feeds.length > 0) {
+    throw new Error(`all ${scope} feeds failed`); // let the runner's failure counter see it
   }
 }
+
+const localMonitoringCheck = () => watchFeeds('local', LOCAL_FEEDS, LOCAL_URGENT_RE);
+const statewideMonitoringCheck = () => watchFeeds('statewide', STATEWIDE_FEEDS, STATEWIDE_URGENT_RE);
 
 const JOBS = [
   { name: 'heartbeat', fn: heartbeat, intervalMs: 60_000, staleAfterMs: 5 * 60_000 },
   { name: 'steel-ppi', fn: steelPpiCheck, intervalMs: 24 * 3_600_000, staleAfterMs: 3 * 24 * 3_600_000 },
   { name: 'local-monitoring', fn: localMonitoringCheck, intervalMs: 24 * 3_600_000, staleAfterMs: 3 * 24 * 3_600_000 },
+  { name: 'statewide-monitoring', fn: statewideMonitoringCheck, intervalMs: 24 * 3_600_000, staleAfterMs: 3 * 24 * 3_600_000 },
 ];
 
 // ---------------------------------------------------------------------------

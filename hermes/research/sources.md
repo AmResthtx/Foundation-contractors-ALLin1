@@ -30,5 +30,11 @@ Format: `SRC-###` | source | class | URL | notes
 - **SRC-033** | TDLR IHB TB 10-01 — Foundations on Expansive Soils | Government | https://www.tdlr.texas.gov/ihb/pdf/TB1001.pdf | Texas technical bulletin on expansive-soil foundations
 - **SRC-034** | HGSD Science & Research (HoustonNet GNSS network) | Government | https://hgsubsidence.org/science-research/ | ~250 permanent GNSS stations; Spring Creek subsidence/flood study
 
+## Statewide (Texas)
+- **SRC-040** | Texas Tribune — RSS feeds (topic-feed pattern) | Recognized news org | https://www.texastribune.org/feeds/ | `texastribune.org/topic/<topic>/feed`; environment topic used by statewide watcher
+- **SRC-041** | Texas Water Newsroom (TWDB press releases) | Government | https://texaswaternewsroom.org/ | TWDB routes all press releases here; `/feed/` used by statewide watcher
+- **SRC-042** | TCEQ news releases | Government | https://www.tceq.texas.gov/news | No RSS — email/text subscription only (tceq.texas.gov/news/email.html)
+- **SRC-043** | Dallas Fed — Texas Manufacturing Outlook Survey | Government | https://www.dallasfed.org/research/surveys/tmos | Monthly; headline index on FRED as `BACTSAMFRBDAL` (diffusion index)
+
 ---
 *Started 2026-07-02. Append new sources with the next free ID in the matching block; never reuse IDs.*

@@ -1,0 +1,18 @@
+services:
+  hermes:
+    build: .
+    container_name: hermes
+    # The restart policy is what keeps the loop alive: any crash or
+    # watchdog exit relaunches the process; survives host reboots too
+    # (as long as the Docker daemon starts on boot).
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /app/data
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

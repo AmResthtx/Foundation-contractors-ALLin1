@@ -1,0 +1,14 @@
+{
+  "name": "foundation-contractors-allin1",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hermes agent stack for helical pier workflow automation",
+  "main": "hermes/index.js",
+  "scripts": {
+    "start": "node hermes/index.js",
+    "once": "node hermes/index.js --once"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

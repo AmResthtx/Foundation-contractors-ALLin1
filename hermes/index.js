@@ -136,13 +136,15 @@ function feedsFromEnv(envVar, defaults) {
     .filter(Boolean);
 }
 
+// Each source is a pipe-separated list of candidate URLs; the watcher uses
+// the first one that fetches AND parses. Comma still separates sources.
 const LOCAL_FEEDS = feedsFromEnv('LOCAL_FEEDS', [
-  'https://hgsubsidence.org/feed/', // Harris-Galveston Subsidence District (SRC-030)
-  'https://communityimpact.com/houston/spring-klein/feed/', // local Spring/Klein news
+  'https://hgsubsidence.org/feed/', // Harris-Galveston Subsidence District (SRC-030) — verified in prod 2026-07-02
+  'https://communityimpact.com/news/houston/spring-klein/feed|https://communityimpact.com/houston/spring-klein/feed/', // per communityimpact.com/rss-feeds: append /feed to any page URL
 ]);
 const STATEWIDE_FEEDS = feedsFromEnv('STATEWIDE_FEEDS', [
-  'https://www.texastribune.org/topic/environment/feed', // documented topic-feed pattern (SRC-040)
-  'https://texaswaternewsroom.org/feed/', // TWDB press releases (SRC-041)
+  'https://feeds.texastribune.org/feeds/main/|https://www.texastribune.org/topic/environment/feed/', // main feed is the documented URL (SRC-040)
+  'https://texaswaternewsroom.org/feed/|https://texaswaternewsroom.org/articles/feed/|https://texaswaternewsroom.org/?feed=rss2', // TWDB newsroom (SRC-041); WordPress feed path unconfirmed
 ]);
 
 // Titles matching these trigger an alert — events that make helical piers
@@ -168,19 +170,43 @@ function parseFeedItems(xml) {
   return items;
 }
 
+// Fetch one source, trying each candidate URL until one fetches and parses.
+// Returns { feedUrl, items }; throws with per-candidate diagnostics if all fail.
+async function fetchFeed(candidates) {
+  const errors = [];
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          // CDN-friendly UA: some hosts 403 unrecognized clients.
+          'user-agent': 'Mozilla/5.0 (compatible; HermesMonitor/0.1)',
+          accept: 'application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8',
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = await res.text();
+      const items = parseFeedItems(body);
+      if (items.length === 0) {
+        const ct = res.headers.get('content-type') || 'unknown';
+        throw new Error(`no items parsed (content-type ${ct}; starts: ${JSON.stringify(body.slice(0, 120))})`);
+      }
+      return { feedUrl: url, items };
+    } catch (err) {
+      errors.push(`${url} -> ${err.message}`);
+    }
+  }
+  throw new Error(errors.join(' | '));
+}
+
 async function watchFeeds(scope, feeds, urgentRe) {
   const stateFile = path.join(DATA_DIR, 'feeds-seen.json');
   const seen = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8')) : {};
   let feedFailures = 0;
 
-  for (const feedUrl of feeds) {
+  for (const source of feeds) {
+    const candidates = source.split('|').map((u) => u.trim()).filter(Boolean);
     try {
-      const res = await fetch(feedUrl, {
-        headers: { 'user-agent': `hermes-industry-monitor/0.1 (${scope} events watch)` },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const items = parseFeedItems(await res.text());
-      if (items.length === 0) throw new Error('no items parsed (feed format changed?)');
+      const { feedUrl, items } = await fetchFeed(candidates);
 
       const firstSight = !seen[feedUrl];
       const known = new Set(seen[feedUrl] || []);
@@ -204,7 +230,7 @@ async function watchFeeds(scope, feeds, urgentRe) {
       seen[feedUrl] = [...known].slice(-SEEN_CAP);
     } catch (err) {
       feedFailures++;
-      log('error', 'industry-monitor', `${scope} feed ${feedUrl} failed: ${err.message}`);
+      log('error', 'industry-monitor', `${scope} feed source failed on all candidates: ${err.message}`);
     }
   }
 
@@ -228,19 +254,27 @@ const JOBS = [
 // Runner
 // ---------------------------------------------------------------------------
 
+// Failures do NOT exit the process: a restart can't fix an upstream 404 or
+// outage, it would just crash-loop the container. Instead, escalate once per
+// failure streak and keep the other jobs running. Only genuine hangs (see
+// watchdog) and startup-time errors exit for restart.
 async function runJob(job) {
   try {
     await job.fn();
-    job.lastFinish = Date.now();
+    if ((job.failures || 0) >= MAX_CONSECUTIVE_FAILURES) {
+      log('info', job.name, `recovered after ${job.failures} consecutive failures`);
+    }
     job.failures = 0;
   } catch (err) {
     job.failures = (job.failures || 0) + 1;
     log('error', job.name, `failed (${job.failures}x): ${err.message}`);
-    if (job.failures >= MAX_CONSECUTIVE_FAILURES) {
-      log('fatal', job.name, `exceeded ${MAX_CONSECUTIVE_FAILURES} consecutive failures; exiting for restart`);
-      await escalate(job.name, `Job "${job.name}" failed ${MAX_CONSECUTIVE_FAILURES}x in a row (last: ${err.message}). Process is restarting; investigate if this repeats.`);
-      process.exit(1);
+    if (job.failures === MAX_CONSECUTIVE_FAILURES) {
+      await escalate(job.name, `Job "${job.name}" has failed ${job.failures}x in a row (last: ${err.message}). Still running and retrying on its interval; investigate the upstream source/config.`);
     }
+  } finally {
+    // The watchdog tracks hangs, not failures — a job that ran and threw
+    // still finished.
+    job.lastFinish = Date.now();
   }
 }
 
@@ -267,9 +301,12 @@ function runDaemon() {
     setInterval(() => runJob(job), job.intervalMs);
   }
 
-  // Self-watchdog: a hung job stops updating lastFinish; exit so the
-  // restart policy replaces the whole process. Docker's HEALTHCHECK only
-  // marks the container unhealthy — this is what actually restarts it.
+  // Self-watchdog: pure HANG detector. A job that never returns (network
+  // socket stuck, event loop alive) stops updating lastFinish even in its
+  // finally block; exit so the restart policy replaces the process. Jobs
+  // that run-and-fail update lastFinish and never trip this. Docker's
+  // HEALTHCHECK only marks the container unhealthy — this is what actually
+  // restarts it.
   setInterval(async () => {
     for (const job of JOBS) {
       if (Date.now() - job.lastFinish > job.staleAfterMs) {

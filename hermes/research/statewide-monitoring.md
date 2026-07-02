@@ -16,10 +16,10 @@ County. Feeds the `statewide-monitoring` job in `hermes/index.js`. Trace IDs ref
 
 ## Automated feeds (statewide-monitoring job, daily)
 
-| Feed | What it covers | Trace |
+| Feed (candidates tried in order) | What it covers | Trace |
 |---|---|---|
-| `texastribune.org/topic/environment/feed` | Statewide environment/water/groundwater coverage; documented topic-feed pattern | SRC-040 |
-| `texaswaternewsroom.org/feed/` | TWDB press releases (their newsroom site) | SRC-041 |
+| `feeds.texastribune.org/feeds/main/`, fallback topic feed | Statewide coverage incl. environment/water/groundwater; main feed is the documented URL | SRC-040 |
+| `texaswaternewsroom.org/feed/`, `/articles/feed/`, `/?feed=rss2` | TWDB press releases (their newsroom site); exact WordPress feed path unconfirmed | SRC-041 |
 
 Override with `STATEWIDE_FEEDS` in `.env`. Alert keywords are deliberately narrower
 than the local tier (sinkhole, subsidence, foundation, expansive clay/soil) — these
@@ -43,3 +43,9 @@ are high-volume feeds and broad words like "drought" or "water" would be pure no
 - **2026-07-02** — Tier initialized; two feeds configured, TCEQ noted as email-only,
   Dallas Fed TMOS flagged as future FRED series (R-11). Feed URLs pending first-run
   verification on the production host (dev sandbox network blocks them).
+- **2026-07-02 (later)** — First prod run: HGSD + FRED verified working; Tribune topic
+  feed, Water Newsroom, and the old Community Impact URL failed. Switched Tribune to
+  the documented main feed, fixed Community Impact to
+  `communityimpact.com/news/houston/spring-klein/feed` (their pattern: any page URL +
+  `/feed`), and gave Water Newsroom three candidate paths. Watcher now tries fallback
+  candidates per source and reports content-type + body snippet on parse failures.

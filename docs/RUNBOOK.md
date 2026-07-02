@@ -5,9 +5,12 @@ How the Hermes loops run, what restarts them, and where to look when something b
 ## The three layers of "keep it running"
 
 1. **Inside the process** (`hermes/index.js`): each job runs on its own interval. A job
-   that throws is logged and retried next interval; after 5 consecutive failures, or if
-   the watchdog sees a job stalled past its staleness window, the process **exits
-   non-zero on purpose**. Exiting is the recovery mechanism — never patch it to limp along.
+   that throws is logged and retried next interval; at 5 consecutive failures it
+   **escalates once and keeps retrying** — it does NOT exit, because a restart can't fix
+   an upstream 404/outage and would just crash-loop the container. The process only
+   **exits non-zero on purpose** for genuine hangs (watchdog: a job stopped returning at
+   all) and unrecoverable startup errors. For those, exiting is the recovery mechanism —
+   never patch it to limp along.
 2. **Docker restart policy** (`docker-compose.yml`, `restart: unless-stopped`): any
    non-zero exit relaunches the container, with backoff. Survives host reboots if the
    Docker daemon starts on boot (`systemctl enable docker`). The Dockerfile
@@ -42,8 +45,13 @@ rebuilds don't lose them: `data/audit.log` (every action, Policy 2), `data/heart
 3. `(unhealthy)` but running → heartbeat stalled; the watchdog will exit and restart it
    within its staleness window. If it recurs, a job is hanging — check which job's
    `lastFinish` complaint appears in the fatal watchdog line.
-4. A single job erroring but others fine → transient upstream failure (e.g. FRED down);
-   it retries on the next interval and only kills the process after 5 straight failures.
+4. A single job erroring but others fine → upstream failure (e.g. FRED down, feed URL
+   changed); it retries on the next interval indefinitely and escalates to you once per
+   failure streak at 5 straight failures. Feed errors include the failing URL,
+   content-type, and a body snippet — usually enough to spot a moved/renamed feed.
+   Fix by setting the right URL in `LOCAL_FEEDS`/`STATEWIDE_FEEDS` (comma separates
+   sources; a pipe `|` separates fallback candidates for one source) and
+   `docker compose up -d`.
 
 ## Current jobs
 

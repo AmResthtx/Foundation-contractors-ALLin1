@@ -141,12 +141,12 @@ function feedsFromEnv(envVar, defaults) {
 const LOCAL_FEEDS = feedsFromEnv('LOCAL_FEEDS', [
   'https://hgsubsidence.org/feed/', // Harris-Galveston Subsidence District (SRC-030) — verified in prod 2026-07-02
   'https://www.houstonpublicmedia.org/topics/environment/feed/|https://www.houstonpublicmedia.org/feed/', // Houston Public Media (SRC-044): environment topic, main feed fallback
+  'https://communityimpact.com/houston/feed|https://communityimpact.com/news/houston/feed', // Community Impact Houston edition (SRC-046): base URL from Ellis + their documented /feed pattern
 ]);
 const STATEWIDE_FEEDS = feedsFromEnv('STATEWIDE_FEEDS', [
   'https://feeds.texastribune.org/feeds/main/', // documented URL (SRC-040) — verified in prod 2026-07-02
-  // Texas Register weekly feed (statewide rulemaking incl. TCEQ/TWDB) pending
-  // exact URL from sos.state.tx.us/rss (backlog R-13). Texas Water Newsroom
-  // removed 2026-07-02: HTML-only, serves no RSS (confirmed in prod).
+  'https://www.sos.state.tx.us/texreg/texreg.xml', // Texas Register weekly issue feed (SRC-045), URL confirmed by Ellis 2026-07-02
+  // Texas Water Newsroom removed 2026-07-02: HTML-only, no RSS (confirmed in prod).
 ]);
 
 // Titles matching these trigger an alert — events that make helical piers

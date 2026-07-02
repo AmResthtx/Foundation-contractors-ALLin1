@@ -19,7 +19,7 @@ County. Feeds the `statewide-monitoring` job in `hermes/index.js`. Trace IDs ref
 | Feed (candidates tried in order) | What it covers | Trace |
 |---|---|---|
 | `feeds.texastribune.org/feeds/main/` | Statewide coverage incl. environment/water/groundwater — verified in prod 2026-07-02 | SRC-040 |
-| Texas Register weekly feed (pending exact URL, R-13) | Statewide rulemaking: proposed/adopted/emergency rules incl. TCEQ & TWDB | SRC-045 |
+| `sos.state.tx.us/texreg/texreg.xml` | Texas Register weekly issue: statewide rulemaking incl. TCEQ & TWDB — URL confirmed by Ellis 2026-07-02 | SRC-045 |
 
 Override with `STATEWIDE_FEEDS` in `.env`. Alert keywords are deliberately narrower
 than the local tier (sinkhole, subsidence, foundation, expansive clay/soil) — these

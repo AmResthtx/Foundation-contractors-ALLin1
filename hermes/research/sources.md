@@ -36,7 +36,8 @@ Format: `SRC-###` | source | class | URL | notes
 - **SRC-042** | TCEQ news releases | Government | https://www.tceq.texas.gov/news | No RSS — email/text subscription only (tceq.texas.gov/news/email.html)
 - **SRC-043** | Dallas Fed — Texas Manufacturing Outlook Survey | Government | https://www.dallasfed.org/research/surveys/tmos | Monthly; headline index on FRED as `BACTSAMFRBDAL` (diffusion index)
 - **SRC-044** | Houston Public Media (NPR affiliate) | Recognized news org | https://www.houstonpublicmedia.org/topics/environment/feed/ | Environment topic feed + main `/feed/` fallback; used by local watcher
-- **SRC-045** | Texas Register RSS (Texas SOS) | Government | https://www.sos.state.tx.us/rss/index.shtml | Weekly issue feed exists (statewide rulemaking incl. TCEQ/TWDB); exact feed URL on this directory page (backlog R-13)
+- **SRC-045** | Texas Register RSS (Texas SOS) | Government | https://www.sos.state.tx.us/texreg/texreg.xml | Weekly issue feed, statewide rulemaking incl. TCEQ/TWDB; URL confirmed by Ellis 2026-07-02. SOS press-release feed also exists (`/rss/press.xml`) — not watched, mostly elections/filings
+- **SRC-046** | Community Impact — Houston edition | Recognized news org (hyperlocal) | https://communityimpact.com/houston/ | Base URL from Ellis; watcher tries `+/feed` candidates per their documented pattern. Spring–Klein sub-edition has no dedicated working feed
 
 ---
 *Started 2026-07-02. Append new sources with the next free ID in the matching block; never reuse IDs.*

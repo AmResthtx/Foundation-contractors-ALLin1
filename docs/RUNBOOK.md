@@ -59,8 +59,8 @@ rebuilds don't lose them: `data/audit.log` (every action, Policy 2), `data/heart
 |---|---|---|
 | `heartbeat` | 60s | Touches `data/heartbeat` (feeds the health check) |
 | `steel-ppi` | daily | Pulls FRED `WPU101704` / `PCU33123312`; logs new monthly observations; alerts `CRM_WEBHOOK_URL` when a move ≥ `PPI_ALERT_PCT` (default 5%) |
-| `local-monitoring` | daily | Watches local RSS feeds (`LOCAL_FEEDS`, default HGSD + Houston Public Media environment); logs new items, alerts on urgent keywords (sinkhole, subsidence, foundation, …). First sight of a feed seeds state silently — no alert storm on history. |
-| `statewide-monitoring` | daily | Same engine, Texas-wide feeds (`STATEWIDE_FEEDS`, default Texas Tribune main feed; Texas Register pending R-13); narrower alert keywords to keep high-volume feeds quiet. See `hermes/research/statewide-monitoring.md`. |
+| `local-monitoring` | daily | Watches local RSS feeds (`LOCAL_FEEDS`, default HGSD + Houston Public Media environment + Community Impact Houston); logs new items, alerts on urgent keywords (sinkhole, subsidence, foundation, …). First sight of a feed seeds state silently — no alert storm on history. |
+| `statewide-monitoring` | daily | Same engine, Texas-wide feeds (`STATEWIDE_FEEDS`, default Texas Tribune main + Texas Register weekly); narrower alert keywords to keep high-volume feeds quiet. See `hermes/research/statewide-monitoring.md`. |
 
 ## Talking to Hermes
 

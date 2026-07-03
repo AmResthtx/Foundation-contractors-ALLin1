@@ -66,7 +66,8 @@ an approval callback receiver (`hermes/lib/callback-server.js`, `http://hermes:8
 compose-internal) that records every decision in `data/approvals/` + the audit log.
 Remaining human steps: import + credential wiring in the n8n UI
 (docs/N8N_TELEGRAM_SETUP.md) and, later, connecting the actual social accounts and
-posting nodes (backlog R-14).
+posting nodes (backlog R-14) — either n8n's native per-platform nodes or a
+self-hosted Postiz instance as the single posting API (option recorded in R-14).
 
 ### 4. Lead Scorer / CRM
 - `hermes/agents/email-intel.js` watches `data/leads-inbox/`, validates shape, quarantines

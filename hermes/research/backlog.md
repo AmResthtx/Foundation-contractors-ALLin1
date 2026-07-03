@@ -60,6 +60,11 @@ every completed item must add sources to `sources.md` with trace IDs.
   FB/IG/LinkedIn/X/Google Business Profile as n8n credentials and attach posting
   nodes after the approve branch, with the published URL sent back on the same
   callback. Design in `docs/AGENT_STACK.md` §Content Pipeline.
+  *Alternative posting path (found 2026-07-03 evaluating awesome-selfhosted):
+  [Postiz](https://github.com/gitroomhq/postiz-app) (AGPL-3.0, Docker) — self-hosted
+  social scheduler with one API across FB/IG/LinkedIn/X and a review calendar. Would
+  replace five per-platform n8n credentials with one service the approve branch POSTs
+  to. Same OAuth-app registration work either way; decide when R-14 resumes.*
 
 ## Done
 - ✅ 2026-07-02 — Source registry seeded (`sources.md`, SRC-001…034).

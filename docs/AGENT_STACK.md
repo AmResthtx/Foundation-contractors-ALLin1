@@ -75,13 +75,22 @@ n8n workflow to build (backlog R-14).
 - Integrations: `CRM_WEBHOOK_URL` (n8n) for alert routing, `CRM_EMAIL`/`WEB3FORMS_KEY` for
   escalation fallback.
 
-### 5. Fidelity Auditor
-- **Not fully built.** `hermes/agents/autonomous-optimization-architect.js` does a
-  related but narrower job today — it scans the audit log for alert/error volume and
-  suggests low-cost operational changes (batching noisy alerts, adding retry/backoff).
-  It does not yet grade individual agents on **policy adherence** (Policy 4:
-  rule-following flop = PASS, rule-breaking viral hit = FAIL) or track 3-cycle repeat
-  offenders for escalation to Ellis. That's the open piece of this component.
+### 5. Fidelity Auditor (`hermes/agents/fidelity-auditor.js`)
+- Grades every other agent on **policy adherence, not outcomes** (Policy 4: a campaign
+  that flops while following the rules is a PASS; breaking a rule to go viral is a FAIL)
+  — weekly, against real evidence in `data/audit.log`, never against mere silence (a
+  quiet week is untested, not failing).
+- Five rules today, one per checkable Policy/agent pair: lead-scorer reasoning +
+  hot-lead dispatch (Policy 7), torque-verifier rejection reasons (Policy 6),
+  content-pipeline gate completeness (Policy 2), escalation transparency (Policy 5).
+  Extend `RULES` in the agent file as new agents ship real, checkable log output —
+  never add a rule that has to guess intent.
+- Tracks a consecutive-fail streak per rule in `data/fidelity-history.json`;
+  **3-cycle repeat offenders escalate to Ellis** via `ctx.escalate()`.
+- Dated pass/fail report appended to `data/audit-reports.md` every cycle (runtime
+  output, not a committed research doc).
+- `hermes/agents/autonomous-optimization-architect.js` remains a separate, narrower
+  agent — ops-cost recommendations from alert/error volume, not policy grading.
 
 ### Torque-log verification (Policy 6 / backlog R-9)
 - `hermes/agents/torque-verifier.js` + `hermes/agents/civil-engineer.js` (field
@@ -124,7 +133,7 @@ n8n workflow to build (backlog R-14).
 | 2 | Industry monitor (FRED PPI + TMOS + local/statewide feeds) | ✅ all four agents running; feed URLs verified in prod, not yet re-verified since the restructure |
 | 3 | Content pipeline + Policy 2 gate | ✅ real enforcement (source validation, contradiction stress-test, structural-claim flag, audit entry) — no publish path wired past the CRM webhook yet (needs n8n approval branch) |
 | 4 | Lead scorer + CRM webhook + torque-log verifier | ✅ running end to end (file-drop → email-intel → lead-scorer → HOT alert / torque-verifier → payment clearance) |
-| 5 | Fidelity auditor | 🚧 partial — audit-log-driven ops recommendations exist; policy-adherence grading + 3-cycle escalation not built |
+| 5 | Fidelity auditor | ✅ weekly policy-adherence grading (5 rules) + 3-cycle escalation running |
 | 6 | Orchestrator wiring | ✅ per-agent interval scheduling, watchdog, `--once` mode for GitHub Actions fallback, `hermes/chat.js` two-way CLI |
 | 7 | n8n Telegram approval + social posting | 🚧 one-way alert workflow shipped (`hermes/n8n/hermes-telegram-notify.json`); approval branch + platform nodes not built (backlog R-14) |
 
@@ -147,3 +156,4 @@ used to seed this stack):
 | Content Pipeline | `hermes/agents/content-pipeline.js` | draft creation + gating + CRM post |
 | Agents Orchestrator | `hermes/agents/agents-orchestrator.js` | task routing & handoffs |
 | *(none — restored, not from agency-agents)* | `hermes/agents/heartbeat.js`, `steel-ppi.js`, `tmos.js`, `local-monitoring.js`, `statewide-monitoring.js` | Industry Monitor (component 2) |
+| *(none — built to close the Fidelity Auditor gap)* | `hermes/agents/fidelity-auditor.js` | Fidelity Auditor (component 5) |

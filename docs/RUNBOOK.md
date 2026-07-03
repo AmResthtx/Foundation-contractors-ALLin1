@@ -48,6 +48,7 @@ docker compose exec hermes node hermes/chat.js run steel-ppi   # trigger one age
 docker compose exec hermes node hermes/chat.js ask "what alloy do we use for pile shafts?"  # KB-grounded Q&A (needs ANTHROPIC_API_KEY)
 docker compose exec hermes node hermes/chat.js lead "Jane Doe" "555-1234" "slab is sagging"  # drop a lead into intake
 docker compose exec hermes node hermes/chat.js torque-status   # pending/verified/rejected counts
+docker compose exec hermes node hermes/chat.js fidelity-status # policy-adherence rule streaks (Policy 4)
 docker compose exec hermes node hermes/chat.js                 # interactive REPL, same commands without the prefix
 ```
 `ask` answers strictly from `hermes/research/*.md` — it will say "the KB doesn't cover

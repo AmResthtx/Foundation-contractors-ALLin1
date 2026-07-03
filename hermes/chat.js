@@ -164,6 +164,25 @@ function cmdTorqueStatus() {
   return out;
 }
 
+function cmdFidelityStatus() {
+  const historyFile = path.join(DATA_DIR, 'fidelity-history.json');
+  if (!fs.existsSync(historyFile)) {
+    const out = 'no fidelity audit has run yet (runs weekly, or trigger now: `run fidelity-auditor`)';
+    console.log(out);
+    auditCommand('fidelity-status', {}, out);
+    return out;
+  }
+  const history = JSON.parse(fs.readFileSync(historyFile, 'utf8'));
+  const lines = Object.entries(history).map(([id, h]) => {
+    const flag = h.consecutiveFails >= 3 ? ' [ESCALATED]' : h.consecutiveFails > 0 ? ' [failing]' : '';
+    return `  ${id.padEnd(28)} ${h.lastResult.padEnd(4)} streak:${h.consecutiveFails}${flag} (${h.agent}, ${h.policy})`;
+  });
+  const out = `Fidelity audit rules:\n${lines.join('\n')}`;
+  console.log(out);
+  auditCommand('fidelity-status', {}, { ruleCount: Object.keys(history).length });
+  return out;
+}
+
 async function dispatch(command, args) {
   switch (command) {
     case 'status':
@@ -176,9 +195,11 @@ async function dispatch(command, args) {
       return cmdLead(args[0], args[1], args.slice(2).join(' '));
     case 'torque-status':
       return cmdTorqueStatus();
+    case 'fidelity-status':
+      return cmdFidelityStatus();
     case 'help':
     case undefined:
-      console.log('commands: status | run <agent> | ask "<question>" | lead <name> <contact> "<message>" | torque-status | help | exit');
+      console.log('commands: status | run <agent> | ask "<question>" | lead <name> <contact> "<message>" | torque-status | fidelity-status | help | exit');
       return;
     default:
       console.log(`unknown command "${command}". Type "help".`);

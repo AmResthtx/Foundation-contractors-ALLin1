@@ -113,6 +113,49 @@ const assert = require('assert');
   assert(parser.parseFeedItems('not xml at all').length === 0, 'garbage input should parse to empty array, not throw');
   console.log('parseFeedItems RSS parsing test passed');
 
+  // 6) fidelity-auditor: rules grade real log evidence, never mere silence
+  const auditLog = path.join(dataDir, 'audit.log');
+  const nowIso = new Date().toISOString();
+  const writeAudit = (obj) => fs.appendFileSync(auditLog, JSON.stringify(Object.assign({ ts: nowIso }, obj)) + '\n', 'utf8');
+  fs.rmSync(auditLog, { force: true });
+
+  // lead-scorer: one good score, one HOT lead with NO matching alert (should fail)
+  writeAudit({ type: 'log', entry: { agent: 'lead-scorer', action: 'scored', file: 'a.json', score: 40 } });
+  writeAudit({ type: 'log', entry: { agent: 'lead-scorer', action: 'scored', file: 'b.json', score: 90 } });
+  // (deliberately no hot_lead alert for file b.json)
+
+  // torque-verifier: a rejection with an empty reasons array (should fail)
+  writeAudit({ type: 'alert', entry: { agent: 'torque-verifier', action: 'validation_failed', file: 'c.json', fails: [] } });
+
+  // content-pipeline: a draft missing engineer_review_required (should fail)
+  writeAudit({ type: 'log', entry: { agent: 'content-pipeline', action: 'draft_created', auditId: 'AUD-1' } });
+
+  // escalation with no message (should fail)
+  writeAudit({ type: 'escalate', entry: { agent: 'orchestrator' } });
+
+  const fidelityCtx = { logs: [], alerts: [], escalates: [], log: (e) => fidelityCtx.logs.push(e), alert: (e) => fidelityCtx.alerts.push(e), escalate: (e) => fidelityCtx.escalates.push(e), dataDir };
+  const fidelityAuditor = require('./agents/fidelity-auditor');
+  fidelityAuditor.run(fidelityCtx);
+  const summary = fidelityCtx.logs.find((l) => l.agent === 'fidelity-auditor' && l.results);
+  assert(summary, 'fidelity-auditor should log a summary with results');
+  const byId = Object.fromEntries(summary.results.map((r) => [r.id, r.pass]));
+  assert(byId['lead-scorer-reasoning'] === true, 'both scores were numeric, rule should pass');
+  assert(byId['lead-scorer-hot-dispatch'] === false, 'HOT lead with no alert should fail');
+  assert(byId['torque-verifier-reasons'] === false, 'rejection with empty reasons array should fail');
+  assert(byId['content-pipeline-gate'] === false, 'draft missing engineer_review_required should fail');
+  assert(byId['escalation-transparency'] === false, 'escalation with no message should fail');
+  assert(fs.existsSync(path.join(dataDir, 'fidelity-history.json')), 'history file should be written');
+  const history = JSON.parse(fs.readFileSync(path.join(dataDir, 'fidelity-history.json'), 'utf8'));
+  assert(history['lead-scorer-hot-dispatch'].consecutiveFails === 1, 'first failure should set streak to 1');
+
+  // run it two more times with the same failing evidence -> streak hits 3 -> escalate
+  fidelityAuditor.run(fidelityCtx);
+  fidelityAuditor.run(fidelityCtx);
+  const historyAfter3 = JSON.parse(fs.readFileSync(path.join(dataDir, 'fidelity-history.json'), 'utf8'));
+  assert(historyAfter3['lead-scorer-hot-dispatch'].consecutiveFails === 3, 'streak should reach 3 after three failing cycles');
+  assert(fidelityCtx.escalates.some((e) => e.message && e.message.includes('lead-scorer') && e.message.includes('3 consecutive')), '3-cycle repeat offender should escalate to Ellis');
+  console.log('fidelity-auditor tests passed');
+
   console.log('All tests passed');
   process.exit(0);
 })().catch((err) => { console.error('Tests failed', err); process.exit(1); });

@@ -1,0 +1,13 @@
+{
+  "name": "Hermes Social Approval",
+  "nodes": [
+    { "id": "start", "type": "webhook", "name": "Webhook" },
+    { "id": "check", "type": "if", "name": "Type == social_draft" },
+    { "id": "tg_wait", "type": "telegram_send_and_wait", "name": "Telegram Approve/Reject", "chatId": "REPLACE_WITH_YOUR_CHAT_ID" },
+    { "id": "approve", "type": "http_request", "name": "Approve Callback", "method": "POST", "url": "https://your-hermes-endpoint.example.com/hermes/approve" },
+    { "id": "reject", "type": "telegram_message", "name": "Reject Notice" }
+  ],
+  "connections": [
+    ["start","check"], ["check","tg_wait"], ["tg_wait","approve","onApprove"], ["tg_wait","reject","onReject"]
+  ]
+}

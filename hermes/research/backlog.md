@@ -44,18 +44,22 @@ every completed item must add sources to `sources.md` with trace IDs.
   confirmed working in production Docker. Remaining: swap to the keyed FRED API if
   the CSV endpoint ever rate-limits or breaks.*
 
-- **R-11** — Add Dallas Fed TMOS headline index (FRED `BACTSAMFRBDAL`) to the FRED job
-  with diffusion-index-appropriate alerting (sign flips / large point moves, not percent
-  change). Context in `statewide-monitoring.md` (SRC-043).
+- **R-11** — *(closed 2026-07-03)* TMOS headline index shipped as `hermes/agents/tmos.js`
+  with diffusion-index alerting (sign flip always; point move ≥ `TMOS_ALERT_POINTS`).
+  Context in `statewide-monitoring.md` (SRC-043).
 - **R-12** — *(closed 2026-07-02)* Community Impact publishes no working RSS: four
   candidate URLs (Spring–Klein + Houston edition patterns) all 404'd in prod. Removed
   from the watcher; remains a browser-only citable source (SRC-046).
 
-- **R-14** — Social media hookup (needs Ellis): n8n container + Telegram notification
-  workflow shipped 2026-07-02 (`docs/N8N_TELEGRAM_SETUP.md`, ~15 min of human steps).
-  Remaining: connect FB/IG/LinkedIn/X/Google Business Profile as n8n credentials and
-  build the draft→approve→post→callback branch once the content pipeline exists.
-  Design in `docs/AGENT_STACK.md` §Content Pipeline.
+- **R-14** — Social media hookup (needs Ellis): n8n container + unified
+  notify+approval workflow shipped (`hermes/n8n/hermes-social-approval.json`,
+  2026-07-03) with the Hermes-side approval callback receiver
+  (`hermes/lib/callback-server.js`, decisions recorded in `data/approvals/` per
+  Policy 5). Human steps: import + Telegram credential/chat-ID wiring in the n8n UI
+  (`docs/N8N_TELEGRAM_SETUP.md`, ~15 min). Remaining build: connect
+  FB/IG/LinkedIn/X/Google Business Profile as n8n credentials and attach posting
+  nodes after the approve branch, with the published URL sent back on the same
+  callback. Design in `docs/AGENT_STACK.md` §Content Pipeline.
 
 ## Done
 - ✅ 2026-07-02 — Source registry seeded (`sources.md`, SRC-001…034).

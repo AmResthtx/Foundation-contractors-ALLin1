@@ -156,6 +156,51 @@ const assert = require('assert');
   assert(fidelityCtx.escalates.some((e) => e.message && e.message.includes('lead-scorer') && e.message.includes('3 consecutive')), '3-cycle repeat offender should escalate to Ellis');
   console.log('fidelity-auditor tests passed');
 
+  // 7) approval callback server (Policy 5 traceability)
+  const { startCallbackServer } = require('./lib/callback-server');
+  const cbCtx = { logs: [], log: (e) => cbCtx.logs.push(e), alert: () => {}, escalate: () => {}, dataDir };
+  const server = startCallbackServer(cbCtx, 0); // ephemeral port
+  await new Promise((r) => server.once('listening', r));
+  const port = server.address().port;
+  const base = `http://127.0.0.1:${port}`;
+
+  const health = await fetch(`${base}/health`);
+  assert(health.status === 200, 'health endpoint should return 200');
+
+  const ok = await fetch(`${base}/callback/approval`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ audit_id: 'AUD-test-1', approved: true, platform: 'facebook', published_url: 'https://fb.example/post/1', approver: 'ellis-telegram' }),
+  });
+  assert(ok.status === 200, 'valid approval should return 200');
+  const approvalFile = path.join(dataDir, 'approvals', 'AUD-test-1.json');
+  assert(fs.existsSync(approvalFile), 'approval should be persisted to data/approvals/');
+  const saved = JSON.parse(fs.readFileSync(approvalFile, 'utf8'));
+  assert(saved.approved === true && saved.published_url === 'https://fb.example/post/1', 'approval record should keep published_url (Policy 5)');
+  assert(cbCtx.logs.some((l) => l.agent === 'approval-callback' && l.action === 'draft_approved' && l.audit_id === 'AUD-test-1'), 'approval should hit the audit log');
+
+  const rejected = await fetch(`${base}/callback/approval`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ audit_id: 'AUD-test-2', approved: false }),
+  });
+  assert(rejected.status === 200, 'valid rejection should return 200');
+  assert(cbCtx.logs.some((l) => l.action === 'draft_rejected' && l.audit_id === 'AUD-test-2'), 'rejection should hit the audit log');
+
+  const badJson = await fetch(`${base}/callback/approval`, { method: 'POST', body: '{ not json' });
+  assert(badJson.status === 400, 'malformed JSON should 400, not crash');
+  const missingFields = await fetch(`${base}/callback/approval`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ approved: true }),
+  });
+  assert(missingFields.status === 400, 'missing audit_id should 400');
+  const wrongPath = await fetch(`${base}/nope`, { method: 'POST', body: '{}' });
+  assert(wrongPath.status === 404, 'unknown path should 404');
+
+  await new Promise((r) => server.close(r));
+  console.log('approval callback server tests passed');
+
   console.log('All tests passed');
   process.exit(0);
 })().catch((err) => { console.error('Tests failed', err); process.exit(1); });

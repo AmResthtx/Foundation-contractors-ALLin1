@@ -59,10 +59,14 @@ with every output traceable to authoritative sources and gated before publicatio
 4. On approval, n8n posts to the platform and calls back so Hermes records the
    published URL in the audit log (Policy 5: all auto-sends traceable).
 
-Status: the webhook contract and gate are live; the n8n **approval branch** (as opposed
-to the one-way alert workflow already shipped, `hermes/n8n/hermes-telegram-notify.json`)
-and the actual platform-posting nodes are not built yet — this is the natural next
-n8n workflow to build (backlog R-14).
+Status: the webhook contract, gate, approval workflow, and callback are all built:
+`hermes/n8n/hermes-social-approval.json` (unified: alert branch + draft-approval branch
+with Telegram Approve/Reject) supersedes the notify-only workflow, and the daemon runs
+an approval callback receiver (`hermes/lib/callback-server.js`, `http://hermes:8787`,
+compose-internal) that records every decision in `data/approvals/` + the audit log.
+Remaining human steps: import + credential wiring in the n8n UI
+(docs/N8N_TELEGRAM_SETUP.md) and, later, connecting the actual social accounts and
+posting nodes (backlog R-14).
 
 ### 4. Lead Scorer / CRM
 - `hermes/agents/email-intel.js` watches `data/leads-inbox/`, validates shape, quarantines
@@ -135,7 +139,7 @@ n8n workflow to build (backlog R-14).
 | 4 | Lead scorer + CRM webhook + torque-log verifier | ✅ running end to end (file-drop → email-intel → lead-scorer → HOT alert / torque-verifier → payment clearance) |
 | 5 | Fidelity auditor | ✅ weekly policy-adherence grading (5 rules) + 3-cycle escalation running |
 | 6 | Orchestrator wiring | ✅ per-agent interval scheduling, watchdog, `--once` mode for GitHub Actions fallback, `hermes/chat.js` two-way CLI |
-| 7 | n8n Telegram approval + social posting | 🚧 one-way alert workflow shipped (`hermes/n8n/hermes-telegram-notify.json`); approval branch + platform nodes not built (backlog R-14) |
+| 7 | n8n Telegram approval + social posting | 🚧 approval workflow + Hermes callback receiver shipped (`hermes-social-approval.json`, `callback-server.js`); needs human import/credentials in n8n UI; platform posting nodes still open (backlog R-14) |
 
 ## agency-agents mapping
 

@@ -57,7 +57,11 @@ that" rather than guess, and cites SRC-###/PRJ-### where it draws on a fact.
 **2. File-drop (no CLI needed)**
 - Ingest a lead: drop a JSON file into data/leads-inbox/ with fields {name,contact,message,ts}
 - Ingest a torque log: drop a JSON into data/torque-logs/ with the 12 required PE fields
-- Approve a social draft: use n8n Telegram workflow to Approve/Reject; approval posts back to Hermes endpoint configured in the workflow
+- Approve a social draft: the n8n workflow (`hermes/n8n/hermes-social-approval.json`)
+  sends Approve/Reject buttons to Telegram; the decision POSTs back to Hermes at
+  `http://hermes:8787/callback/approval` (daemon-only listener, compose-internal,
+  `CALLBACK_PORT` in .env) and lands in `data/approvals/<audit_id>.json` + the audit
+  log. Setup: docs/N8N_TELEGRAM_SETUP.md.
 
 **Not yet built**: Telegram two-way (message the bot, Hermes replies in-chat via n8n
 forwarding to the same command handler `chat.js` uses). The CLI proves the command

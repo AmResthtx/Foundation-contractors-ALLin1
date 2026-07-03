@@ -153,6 +153,14 @@ function runDaemon() {
   const agents = loadAgents();
   ctx.log({ message: 'hermes runner starting daemon', agents: agents.map((a) => a.name) });
 
+  // Approval callback receiver for the n8n draft-approval workflow
+  // (Policy 5). Compose-internal only; set CALLBACK_PORT=0 to disable.
+  const callbackPort = Number(process.env.CALLBACK_PORT ?? 8787);
+  if (callbackPort > 0) {
+    const { startCallbackServer } = require('./lib/callback-server');
+    startCallbackServer(ctx, callbackPort);
+  }
+
   for (const agent of agents) {
     agent._lastFinish = Date.now();
     runJob(agent);

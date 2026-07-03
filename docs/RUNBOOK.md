@@ -1,101 +1,43 @@
-# Runbook — keeping the loops alive
+# RUNBOOK — Hermes jobs & talking to Hermes
 
-How the Hermes loops run, what restarts them, and where to look when something breaks.
+This runbook shows the key Hermes jobs, where to look for inputs and outputs, and how to trigger or debug jobs.
 
-## The three layers of "keep it running"
+Jobs
+- email-intel (hermes/agents/email-intel.js)
+  - Watches: data/leads-inbox/
+  - Success: data/leads-processed/ contains JSON {name,contact,message,ts}
+  - Failure: data/leads-error/ contains malformed or invalid payloads
 
-1. **Inside the process** (`hermes/index.js`): each job runs on its own interval. A job
-   that throws is logged and retried next interval; at 5 consecutive failures it
-   **escalates once and keeps retrying** — it does NOT exit, because a restart can't fix
-   an upstream 404/outage and would just crash-loop the container. The process only
-   **exits non-zero on purpose** for genuine hangs (watchdog: a job stopped returning at
-   all) and unrecoverable startup errors. For those, exiting is the recovery mechanism —
-   never patch it to limp along.
-2. **Docker restart policy** (`docker-compose.yml`, `restart: unless-stopped`): any
-   non-zero exit relaunches the container, with backoff. Survives host reboots if the
-   Docker daemon starts on boot (`systemctl enable docker`). The Dockerfile
-   `HEALTHCHECK` only reports health in `docker ps` — the self-watchdog above is what
-   actually triggers the restart.
-3. **GitHub Actions fallback** (`.github/workflows/hermes-monitor.yml`): runs the same
-   jobs in `--once` mode on a weekly schedule with no server at all. GitHub pauses
-   schedules after ~60 days of repo inactivity; re-enable from the Actions tab or run it
-   manually via *Run workflow*.
+- lead-scorer (hermes/agents/lead-scorer.js)
+  - Watches: data/leads-processed/
+  - Outputs: data/leads-scored/ with score and reasoning; data/leads-reminders/ for HOT leads
 
-## Start / stop / restart (Docker)
+- torque-verifier (hermes/agents/torque-verifier.js)
+  - Watches: data/torque-logs/
+  - Outputs: verified => data/torque-logs/verified/, rejected => data/torque-logs/rejected/
 
-```bash
-cp .env.example .env          # fill in real values first
-docker compose up -d --build  # start
-docker compose logs -f hermes # watch structured JSON logs
-docker ps                     # STATUS column shows (healthy)/(unhealthy)
-docker compose restart hermes # manual restart
-docker compose down           # stop (unless-stopped honors this; won't relaunch)
-```
+- content-pipeline (hermes/agents/content-pipeline.js)
+  - Triggers: new verified torque logs or new scored leads
+  - Outputs: appends to data/drafts.log and POSTs `{type:"social_draft", platform, text, sources, audit_id}` to CRM_WEBHOOK_URL
 
-State and the audit log persist in `./data/` on the host (bind mount), so restarts and
-rebuilds don't lose them: `data/audit.log` (every action, Policy 2), `data/heartbeat`,
-`data/ppi-*.json` (last seen PPI observations).
+- autonomous-optimization-architect (hermes/agents/autonomous-optimization-architect.js)
+  - Runs periodic low-cost analysis and recommends small ops changes via audit log entries
 
-## When something stops working
+Where to find logs & audit trail
+- hermes/audit.log — append-only audit produced by the runner (ctx.log/ctx.alert/ctx.escalate)
+- data/drafts.log — append-only record of drafts & gate decisions
+- data/crm-inbox/ — webhook receiver stores all inbound CRM posts (audit)
 
-1. `docker compose logs --tail 100 hermes` — look for `"level":"error"` / `"fatal"`
-   lines; they name the job and the reason.
-2. `docker ps` says `Restarting` in a loop → the process is crashing at startup;
-   the first `fatal` line in the logs is the cause (bad `.env` value, no network, etc.).
-3. `(unhealthy)` but running → heartbeat stalled; the watchdog will exit and restart it
-   within its staleness window. If it recurs, a job is hanging — check which job's
-   `lastFinish` complaint appears in the fatal watchdog line.
-4. A single job erroring but others fine → upstream failure (e.g. FRED down, feed URL
-   changed); it retries on the next interval indefinitely and escalates to you once per
-   failure streak at 5 straight failures. Feed errors include the failing URL,
-   content-type, and a body snippet — usually enough to spot a moved/renamed feed.
-   Fix by setting the right URL in `LOCAL_FEEDS`/`STATEWIDE_FEEDS` (comma separates
-   sources; a pipe `|` separates fallback candidates for one source) and
-   `docker compose up -d`.
+Triggering and running once
+- Run once: `node hermes/index.js --once` (will run all agents and exit)
+- Tests: `npm test` or `node hermes/test.js`
 
-## Current jobs
+Debugging tips
+- If an agent logs an error, hermes/index.js records it in hermes/audit.log and continues. Use the audit log to find repeated failures.
+- For Anthropic-related failures, check ANTHROPIC_API_KEY in .env — if unset the system runs deterministic local fallbacks (no paid API calls).
 
-| Job | Interval | What it does |
-|---|---|---|
-| `heartbeat` | 60s | Touches `data/heartbeat` (feeds the health check) |
-| `steel-ppi` | daily | Pulls FRED `WPU101704` / `PCU33123312`; logs new monthly observations; alerts `CRM_WEBHOOK_URL` when a move ≥ `PPI_ALERT_PCT` (default 5%) |
-| `local-monitoring` | daily | Watches local RSS feeds (`LOCAL_FEEDS`, default HGSD + Houston Public Media environment); logs new items, alerts on urgent keywords (sinkhole, subsidence, foundation, …). First sight of a feed seeds state silently — no alert storm on history. |
-| `statewide-monitoring` | daily | Same engine, Texas-wide feeds (`STATEWIDE_FEEDS`, default Texas Tribune main + Texas Register weekly); narrower alert keywords to keep high-volume feeds quiet. See `hermes/research/statewide-monitoring.md`. |
+Talking to Hermes (operator flows)
+- Ingest a lead: drop a JSON file into data/leads-inbox/ with fields {name,contact,message,ts}
+- Ingest a torque log: drop a JSON into data/torque-logs/ with the 12 required PE fields
+- Approve a social draft: use n8n Telegram workflow to Approve/Reject; approval posts back to Hermes endpoint configured in the workflow
 
-## Talking to Hermes
-
-There is no chat interface yet — today communication is file- and webhook-based:
-
-**Hermes → you**
-- `data/audit.log` (or `docker compose logs -f hermes`): structured JSON, every action.
-- Alerts: `"level":"alert"` entries are also POSTed to `CRM_WEBHOOK_URL` as JSON
-  (`{source, agent, msg, ts}`). Point that at an n8n workflow to fan out to
-  email/SMS/Slack — that's the intended "Hermes pings Ellis" channel.
-- Escalations (`"level":"escalation"`): repeated job failures and watchdog
-  restarts additionally send an email through Web3Forms when `WEB3FORMS_KEY`
-  is set (recipient = the email tied to your Web3Forms account). This is the
-  Policy 4 "repeat offenders escalate to Ellis" path.
-
-**You → Hermes**
-- `.env`: behavior knobs (e.g. `PPI_ALERT_PCT`); restart the container to apply.
-- `hermes/research/backlog.md`: the task inbox — write research items there and
-  agents (or Copilot) work them top-down.
-- `hermes/config/`: agent charters; editing policies changes agent behavior.
-
-A two-way command channel (reply-by-email or a small CLI, per the escalation design in
-`docs/AGENT_STACK.md`) is a build item for the orchestrator-wiring phase.
-
-## n8n (alerts → Telegram, later social publishing)
-
-Runs as a second compose service with the same `restart: unless-stopped` policy; UI
-at http://localhost:5678 (local machine only). Workflows + encrypted credentials
-persist in `./n8n-data/`. Setup and troubleshooting: `docs/N8N_TELEGRAM_SETUP.md`.
-If Telegram messages stop: `docker compose logs n8n` and check the workflow's
-execution history in the UI — Hermes-side webhook errors show in `data/audit.log`
-as `webhook alert failed`.
-
-## What is NOT durable
-
-Anything scheduled inside a Claude Code chat session (PR check-ins, reminders) dies with
-that session. If a loop matters, it belongs in this repo as code plus one of the two
-runners above.

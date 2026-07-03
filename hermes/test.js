@@ -100,11 +100,18 @@ const assert = require('assert');
   assert(tmosSignFlip(0, 15), 'absolute move >= threshold should alert');
   console.log('TMOS sign-flip tests passed');
 
-  // 5) parseFeedItems export exists
+  // 5) parseFeedItems: real RSS 2.0 XML parsing (title/link/pubDate + CDATA)
   const parser = require('./lib/parseFeedItems');
-  const parsed = parser.parseFeedItems(['a','b']);
-  assert(Array.isArray(parsed) && parsed.length === 2, 'parseFeedItems should parse array');
-  console.log('parseFeedItems export test passed');
+  const sampleRss = `<?xml version="1.0"?><rss><channel>
+    <item><title><![CDATA[Sinkhole reported on Main St]]></title><link>https://example.com/a</link><pubDate>Wed, 01 Jul 2026 00:00:00 GMT</pubDate></item>
+    <item><title>Routine council meeting</title><link>https://example.com/b</link><pubDate>Wed, 02 Jul 2026 00:00:00 GMT</pubDate></item>
+  </channel></rss>`;
+  const parsed = parser.parseFeedItems(sampleRss);
+  assert(Array.isArray(parsed) && parsed.length === 2, 'should parse both RSS items');
+  assert(parsed[0].title === 'Sinkhole reported on Main St', 'CDATA title should be unwrapped');
+  assert(parsed[0].link === 'https://example.com/a', 'link should be extracted');
+  assert(parser.parseFeedItems('not xml at all').length === 0, 'garbage input should parse to empty array, not throw');
+  console.log('parseFeedItems RSS parsing test passed');
 
   console.log('All tests passed');
   process.exit(0);

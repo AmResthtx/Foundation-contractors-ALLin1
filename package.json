@@ -6,6 +6,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node hermes/test.js"
+    "test": "node hermes/test.js",
+    "start": "node hermes/index.js",
+    "once": "node hermes/index.js --once",
+    "chat": "node hermes/chat.js"
   }
 }

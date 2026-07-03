@@ -1,20 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-
-async function callAnthropic(prompt) {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error('no_anthropic_key');
-  const fetch = global.fetch || require('node-fetch');
-  const body = { messages: [{ role: 'user', content: prompt }], model: 'claude-sonnet-5' };
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-API-Key': key },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`anthropic_err:${res.status}`);
-  const json = await res.json();
-  return json;
-}
+const { callAnthropic, extractJson } = require('../lib/anthropic');
 
 function fallbackScore(message) {
   const txt = (message || '').toLowerCase();
@@ -43,10 +29,14 @@ module.exports = {
           // try Anthropic first, but fallback to rule-based scoring if not available
           if (process.env.ANTHROPIC_API_KEY) {
             const prompts = require('../research/prompts');
-            const prompt = `Score this lead using rubric:\n${JSON.stringify(obj)}\n`; 
-            const r = await callAnthropic(prompt);
-            // best-effort parse
-            result = { score: r?.completion?.score || 0, reasons: [JSON.stringify(r?.completion || r).slice(0,200)] };
+            const template = prompts['lead-scoring'] || 'Score this lead:\n{{context}}';
+            const prompt = template.replace('{{context}}', JSON.stringify(obj));
+            const text = await callAnthropic(prompt);
+            const parsed = extractJson(text);
+            if (!parsed || typeof parsed.score !== 'number') {
+              throw new Error(`unparseable_response:${text.slice(0, 200)}`);
+            }
+            result = { score: parsed.score, reasons: Array.isArray(parsed.reasons) ? parsed.reasons : [text.slice(0, 200)] };
             ctx.log({ agent: module.exports.name, method: 'anthropic', file: f });
           } else {
             throw new Error('no_key');

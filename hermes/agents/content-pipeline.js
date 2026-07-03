@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const fetch = global.fetch || require('node-fetch');
+const { callAnthropic } = require('../lib/anthropic');
 
 module.exports = {
   name: 'content-pipeline',
@@ -44,17 +44,7 @@ module.exports = {
       // Draft generation
       if (process.env.ANTHROPIC_API_KEY) {
         try {
-          const body = { messages: [{ role: 'user', content: promptTemplate.replace('{{context}}', context) }], model: 'claude-sonnet-5' };
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.ANTHROPIC_API_KEY }, body: JSON.stringify(body)
-          });
-          if (res.ok) {
-            const j = await res.json();
-            draftText = j.completion || j.result || JSON.stringify(j).slice(0,1000);
-          } else {
-            ctx.log({ agent: module.exports.name, error: 'anthropic_non_ok', status: res.status });
-            draftText = `DRAFT (fallback): ${context}`;
-          }
+          draftText = await callAnthropic(promptTemplate.replace('{{context}}', context));
         } catch (e) {
           ctx.log({ agent: module.exports.name, error: 'anthropic_error', reason: String(e) });
           draftText = `DRAFT (fallback): ${context}`;

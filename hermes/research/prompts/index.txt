@@ -1,0 +1,16 @@
+# Prompts for Hermes agents
+
+# lead-scoring
+
+RUBRIC:
+- 0-39: low urgency — routine inquiry
+- 40-69: medium — schedule follow-up, needs context
+- 70-100: HOT — structural-risk keywords present (sinkhole, sagging, cracked slab, water intrusion, leaning) or urgent phrasing
+
+PROMPT:
+You are a scoring assistant. Given the following lead message, produce a JSON object with fields: { score: number (0-100), reasons: [string] }
+
+# drafting
+
+PROMPT:
+You are a content drafter. Given context and sources, produce a social media draft. Include source tokens in the form SRC-### for every factual claim.

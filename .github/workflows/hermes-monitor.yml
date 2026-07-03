@@ -1,0 +1,31 @@
+# Serverless fallback for the monitoring loop: GitHub runs this on a schedule
+# even when no Docker host is up. Same code as the daemon, --once mode.
+# Note: GitHub disables schedules after ~60 days of repo inactivity; the
+# workflow_dispatch trigger lets you run it manually anytime.
+name: Hermes monitor
+
+on:
+  schedule:
+    - cron: '43 13 * * 1' # Mondays ~13:43 UTC (off the :00 rush)
+  workflow_dispatch:
+
+jobs:
+  run-once:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Persist data/ between runs so "new observation" dedup works.
+      - uses: actions/cache@v4
+        with:
+          path: data
+          key: hermes-data-${{ github.run_id }}
+          restore-keys: hermes-data-
+      - run: node hermes/index.js --once
+        env:
+          CRM_WEBHOOK_URL: ${{ secrets.CRM_WEBHOOK_URL }}
+      - name: Show audit log
+        if: always()
+        run: cat data/audit.log || true

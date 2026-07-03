@@ -1,0 +1,29 @@
+# Prompts for Hermes agents
+
+# lead-scoring
+
+RUBRIC:
+- 0-39: low urgency — routine inquiry
+- 40-69: medium — schedule follow-up, needs context
+- 70-100: HOT — structural-risk keywords present (sinkhole, sagging, cracked slab, water intrusion, leaning) or urgent phrasing
+
+PROMPT:
+You are a scoring assistant. Given the following lead message, produce a JSON object with fields: { score: number (0-100), reasons: [string] }
+
+# drafting
+
+PROMPT:
+You are a content drafter. Given context and sources, produce a social media draft. Include source tokens in the form SRC-### for every factual claim.
+
+# drafting-platform-notes
+
+Per-platform norms appended to the drafting prompt once the pipeline targets a
+platform (distilled from the agency-agents marketing roster, adapted to a local
+contractor — see index.js for the full text):
+- facebook: local-community tone, 1-3 short paragraphs, <=2 hashtags
+- instagram: photo caption (permitted imagery only), hook first line, 3-6 hashtags
+- linkedin: professional value-first, engineering insight leads, <=3 hashtags
+- x: 280 chars max, one claim one source
+- gbp: 750-char cap / ~100 visible, front-load, CTA, no hashtags
+All platforms: educational not promotional, no competitor comparisons (Policy 1),
+SRC-### on every factual claim.

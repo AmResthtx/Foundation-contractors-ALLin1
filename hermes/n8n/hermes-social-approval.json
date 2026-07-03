@@ -1,0 +1,156 @@
+{
+  "name": "Hermes inbox: notify + draft approval",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hermes-inbox",
+        "options": {}
+      },
+      "name": "Hermes Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.type }}",
+              "value2": "social_draft"
+            }
+          ]
+        }
+      },
+      "name": "Is Social Draft?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [480, 380]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_YOUR_CHAT_ID",
+        "operation": "sendAndWait",
+        "message": "={{ '📝 Hermes draft for approval (' + ($json.body.platform || 'platform TBD') + ')\\n\\n' + $json.body.text + '\\n\\nSources: ' + (($json.body.sources || []).join(', ') || 'none') + '\\naudit_id: ' + $json.body.audit_id + '\\n\\nPolicy 5: nothing posts without your approval.' }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "✅ Approve",
+            "disapproveLabel": "🚫 Reject"
+          }
+        },
+        "options": {}
+      },
+      "name": "Approve via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [740, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.data.approved }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [980, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hermes:8787/callback/approval",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ audit_id: $('Hermes Webhook').item.json.body.audit_id, approved: true, platform: $('Hermes Webhook').item.json.body.platform || null, approver: 'ellis-telegram' }) }}",
+        "options": {}
+      },
+      "name": "Record Approval in Hermes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1220, 160]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_YOUR_CHAT_ID",
+        "text": "={{ '✅ Approved and recorded (audit_id ' + $('Hermes Webhook').item.json.body.audit_id + '). Social posting nodes are not connected yet — this is where Facebook/Instagram/LinkedIn/X/GBP nodes attach (backlog R-14). When they are, the post URL flows back to Hermes on this same callback.' }}",
+        "additionalFields": {}
+      },
+      "name": "Confirm Approved",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1460, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hermes:8787/callback/approval",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ audit_id: $('Hermes Webhook').item.json.body.audit_id, approved: false, platform: $('Hermes Webhook').item.json.body.platform || null, approver: 'ellis-telegram' }) }}",
+        "options": {}
+      },
+      "name": "Record Rejection in Hermes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1220, 360]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_YOUR_CHAT_ID",
+        "text": "={{ '🚫 Draft rejected and recorded (audit_id ' + $('Hermes Webhook').item.json.body.audit_id + '). Nothing was posted.' }}",
+        "additionalFields": {}
+      },
+      "name": "Confirm Rejected",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1460, 360]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_YOUR_CHAT_ID",
+        "text": "={{ ($json.body.msg && $json.body.msg.startsWith('[ESCALATION]') ? '🚨 ' : '🔔 ') + 'Hermes / ' + ($json.body.agent || 'system') + '\\n\\n' + ($json.body.msg || $json.body.message || JSON.stringify($json.body)) + '\\n\\n' + ($json.body.ts || '') }}",
+        "additionalFields": {}
+      },
+      "name": "Notify Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [740, 500]
+    }
+  ],
+  "connections": {
+    "Hermes Webhook": {
+      "main": [[{ "node": "Is Social Draft?", "type": "main", "index": 0 }]]
+    },
+    "Is Social Draft?": {
+      "main": [
+        [{ "node": "Approve via Telegram", "type": "main", "index": 0 }],
+        [{ "node": "Notify Telegram", "type": "main", "index": 0 }]
+      ]
+    },
+    "Approve via Telegram": {
+      "main": [[{ "node": "Approved?", "type": "main", "index": 0 }]]
+    },
+    "Approved?": {
+      "main": [
+        [{ "node": "Record Approval in Hermes", "type": "main", "index": 0 }],
+        [{ "node": "Record Rejection in Hermes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Record Approval in Hermes": {
+      "main": [[{ "node": "Confirm Approved", "type": "main", "index": 0 }]]
+    },
+    "Record Rejection in Hermes": {
+      "main": [[{ "node": "Confirm Rejected", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {},
+  "pinData": {}
+}

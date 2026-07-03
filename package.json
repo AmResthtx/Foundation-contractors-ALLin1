@@ -1,0 +1,14 @@
+{
+  "name": "foundation-contractors-hermes",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node hermes/test.js",
+    "start": "node hermes/index.js",
+    "once": "node hermes/index.js --once",
+    "chat": "node hermes/chat.js"
+  }
+}

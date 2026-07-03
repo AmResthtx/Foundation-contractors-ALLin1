@@ -1,0 +1,33 @@
+services:
+  hermes:
+    build: .
+    container_name: hermes
+    # The restart policy is what keeps the loop alive: any crash or
+    # watchdog exit relaunches the process; survives host reboots too
+    # (as long as the Docker daemon starts on boot).
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /app/data
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # Automation hub: social credentials + Telegram live here, never in Hermes.
+  # Hermes reaches it inside the compose network as http://n8n:5678.
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678" # UI on this machine only — do not expose to LAN/internet
+    environment:
+      N8N_SECURE_COOKIE: "false" # required for http://localhost access
+      GENERIC_TIMEZONE: America/Chicago
+      TZ: America/Chicago
+    volumes:
+      - ./n8n-data:/home/node/.n8n # workflows + encrypted credentials persist here

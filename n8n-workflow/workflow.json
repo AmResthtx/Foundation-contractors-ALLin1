@@ -1,0 +1,554 @@
+{
+  "name": "Foundation Contractor Marketing - Research to Revenue Attribution",
+  "description": "White-label content creation workflow: research → verify → generate → approve → publish → measure → grade → optimize",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": "daily",
+        "time": "09:00"
+      },
+      "name": "Daily Content Cycle Start",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [100, 200]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.perplexity.ai/search",
+        "method": "POST",
+        "headers": {
+          "Authorization": "=Bearer {{ $env.PERPLEXITY_API_KEY }}"
+        },
+        "body": {
+          "query": "=Recent high-quality foundation repair content: {{ $json.content_topics }}"
+        }
+      },
+      "name": "Research Phase - Perplexity Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [300, 200]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.meta.com/business/tools/ads-guru/api",
+        "method": "GET",
+        "headers": {
+          "Authorization": "=Bearer {{ $env.META_BUSINESS_TOKEN }}"
+        }
+      },
+      "name": "Research Phase - Meta Ad Guru Insights",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [300, 350]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "headers": {
+          "x-api-key": "=Bearer {{ $env.CLAUDE_API_KEY }}"
+        },
+        "body": {
+          "model": "claude-3-5-sonnet-20241022",
+          "max_tokens": 2000,
+          "system": "You are a fact-checking expert. Verify the accuracy of foundation repair content. Flag any claims that are unsupported, contradictory, or misleading. Rate accuracy on 0-100 scale.",
+          "messages": [
+            {
+              "role": "user",
+              "content": "=Verify accuracy of this research:\n\n{{ $json.research_findings }}\n\nBe rigorous. Foundation safety is critical."
+            }
+          ]
+        }
+      },
+      "name": "Verify Accuracy - Claude Fact Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [500, 275]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": [
+            {
+              "condition": "string",
+              "value1": "={{ $json.accuracy_score }}",
+              "value2": "75",
+              "operation": "gt"
+            }
+          ]
+        }
+      },
+      "name": "Accuracy Check - Pass/Fail",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [700, 275]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "headers": {
+          "x-api-key": "=Bearer {{ $env.CLAUDE_API_KEY }}"
+        },
+        "body": {
+          "model": "claude-3-5-sonnet-20241022",
+          "max_tokens": 3000,
+          "system": "You are an expert foundation contractor content creator. Generate original, authoritative content that builds authority. Include your unique process and why it differs from competitors. Be specific, educational, and professional.",
+          "messages": [
+            {
+              "role": "user",
+              "content": "=Create {{ $json.content_format }} about {{ $json.content_topic }}\n\nResearch:\n{{ $json.verified_research }}\n\nMeta Ad Guru Insights:\n{{ $json.ad_insights }}\n\nGenerate original content that:\n1. Educates the reader\n2. Showcases our installation process\n3. Differentiates from competitors\n4. Includes natural CTA for lead capture"
+            }
+          ]
+        }
+      },
+      "name": "Generate Content - Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 275]
+    },
+    {
+      "parameters": {
+        "channel": "{{ $env.SLACK_APPROVAL_CHANNEL }}",
+        "text": "=📋 **Content Approval Needed**\n\n**Topic**: {{ $json.content_topic }}\n**Format**: {{ $json.content_format }}\n**Accuracy Score**: {{ $json.accuracy_score }}/100\n\n---\n\n{{ $json.generated_content }}\n\n---\n\n👍 *Approve* | 👎 *Decline* | 📝 *Notes*"
+      },
+      "name": "Queue for Approval - Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1100, 275]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WORDPRESS_API_URL }}",
+        "method": "POST",
+        "headers": {
+          "Authorization": "=Bearer {{ $env.WORDPRESS_API_TOKEN }}"
+        },
+        "body": {
+          "title": "={{ $json.content_topic }}",
+          "content": "={{ $json.generated_content }}",
+          "status": "publish",
+          "format": "standard"
+        }
+      },
+      "name": "Publish to WordPress",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1300, 150]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.instagram.com/me/media",
+        "method": "POST",
+        "headers": {
+          "Authorization": "=Bearer {{ $env.META_BUSINESS_TOKEN }}"
+        },
+        "body": {
+          "caption": "={{ $json.content_summary }}",
+          "media_type": "{{ $json.content_format }}"
+        }
+      },
+      "name": "Publish to Meta (Facebook/Instagram)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1300, 250]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.convertkit.com/v3/broadcasts",
+        "method": "POST",
+        "headers": {
+          "Authorization": "=Bearer {{ $env.CONVERTKIT_API_KEY }}"
+        },
+        "body": {
+          "broadcast": {
+            "subject": "={{ $json.content_topic }}",
+            "content": "={{ $json.generated_content }}"
+          }
+        }
+      },
+      "name": "Publish to Email List",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1300, 350]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DATABASE_URL }}",
+        "method": "POST",
+        "body": {
+          "table": "content_published",
+          "data": {
+            "content_id": "={{ $json.content_id }}",
+            "topic": "={{ $json.content_topic }}",
+            "format": "={{ $json.content_format }}",
+            "published_date": "=new Date().toISOString()",
+            "channels": "={{ Object.keys($json.published_channels).join(', ') }}",
+            "accuracy_score": "={{ $json.accuracy_score }}"
+          }
+        }
+      },
+      "name": "Log to Performance Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1500, 250]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/analytics/v3/data/ga",
+        "method": "GET",
+        "headers": {
+          "Authorization": "=Bearer {{ $env.GOOGLE_ANALYTICS_TOKEN }}"
+        }
+      },
+      "name": "Performance Phase - Get Analytics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1700, 150]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CRM_API_URL }}",
+        "method": "GET"
+      },
+      "name": "Performance Phase - Get CRM Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1700, 250]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.TWILIO_API_URL }}/Messages",
+        "method": "GET",
+        "headers": {
+          "Authorization": "=Bearer {{ $env.TWILIO_API_KEY }}"
+        }
+      },
+      "name": "Performance Phase - Get Phone Calls",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1700, 350]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DATABASE_URL }}",
+        "method": "POST",
+        "body": {
+          "table": "content_performance",
+          "data": {
+            "content_id": "={{ $json.content_id }}",
+            "clicks": "={{ $json.analytics.clicks }}",
+            "phone_calls": "={{ $json.calls.count }}",
+            "scheduled_meetings": "={{ $json.crm.meetings_scheduled }}",
+            "closed_jobs": "={{ $json.crm.jobs_closed }}",
+            "revenue_received": "={{ $json.crm.payment_received }}",
+            "measurement_date": "=new Date().toISOString()"
+          }
+        }
+      },
+      "name": "Log Performance Metrics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1900, 250]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "headers": {
+          "x-api-key": "=Bearer {{ $env.CLAUDE_API_KEY }}"
+        },
+        "body": {
+          "model": "claude-3-5-sonnet-20241022",
+          "max_tokens": 1500,
+          "system": "You are a content performance analyst. Grade content based on actual business outcomes. Be rigorous—we measure success by revenue, not vanity metrics.",
+          "messages": [
+            {
+              "role": "user",
+              "content": "=Grade this content piece:\n\nTopic: {{ $json.content_topic }}\nFormat: {{ $json.content_format }}\nAccuracy Score: {{ $json.accuracy_score }}/100\n\nPerformance:\n- Clicks: {{ $json.performance.clicks }}\n- Phone Calls: {{ $json.performance.calls }}\n- Scheduled Meetings: {{ $json.performance.meetings }}\n- Closed Jobs: {{ $json.performance.closed_jobs }}\n- Revenue Received: ${{ $json.performance.revenue }}\n\nProduction Cost: ${{ $json.production_cost }}\nROI: {{ ($json.performance.revenue / $json.production_cost).toFixed(1) }}x\n\nAssign grade (A+, A, B+, B, C, D, F) and explain what worked or didn't."
+            }
+          ]
+        }
+      },
+      "name": "Grade Content - Claude Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2100, 250]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DATABASE_URL }}",
+        "method": "POST",
+        "body": {
+          "table": "content_grades",
+          "data": {
+            "content_id": "={{ $json.content_id }}",
+            "grade": "={{ $json.grade }}",
+            "analysis": "={{ $json.analysis }}",
+            "roi": "={{ ($json.performance.revenue / $json.production_cost).toFixed(2) }}",
+            "graded_date": "=new Date().toISOString()"
+          }
+        }
+      },
+      "name": "Log Content Grade",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [2300, 250]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "headers": {
+          "x-api-key": "=Bearer {{ $env.CLAUDE_API_KEY }}"
+        },
+        "body": {
+          "model": "claude-3-5-sonnet-20241022",
+          "max_tokens": 2000,
+          "system": "You are a marketing optimization agent. Analyze content performance patterns and recommend next steps. Look for what's working and what isn't.",
+          "messages": [
+            {
+              "role": "user",
+              "content": "=Analyze performance across all content published:\n\n{{ $json.all_content_grades }}\n\nIdentify:\n1. Top 3 performing content types/topics (by revenue)\n2. Bottom 3 underperforming (by revenue)\n3. Patterns in what drives calls/meetings/jobs\n4. What to double down on next\n5. What to stop creating\n6. What new angles to test\n\nFormat as actionable recommendations for the next 30 days."
+            }
+          ]
+        }
+      },
+      "name": "Optimize - Agent Recommendations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2500, 250]
+    },
+    {
+      "parameters": {
+        "channel": "{{ $env.SLACK_APPROVAL_CHANNEL }}",
+        "text": "=📊 **Performance Report & Next Steps**\n\nLatest Content Cycle Complete\n\n**Top Performers**:\n{{ $json.top_performers }}\n\n**Underperformers**:\n{{ $json.bottom_performers }}\n\n**Agent Recommendations**:\n{{ $json.recommendations }}\n\n**Next Cycle Topics**:\n{{ $json.next_cycle_topics }}"
+      },
+      "name": "Report to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [2700, 250]
+    }
+  ],
+  "connections": {
+    "Daily Content Cycle Start": {
+      "main": [
+        [
+          {
+            "node": "Research Phase - Perplexity Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Phase - Perplexity Search": {
+      "main": [
+        [
+          {
+            "node": "Research Phase - Meta Ad Guru Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Phase - Meta Ad Guru Insights": {
+      "main": [
+        [
+          {
+            "node": "Verify Accuracy - Claude Fact Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Accuracy - Claude Fact Check": {
+      "main": [
+        [
+          {
+            "node": "Accuracy Check - Pass/Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accuracy Check - Pass/Fail": {
+      "main": [
+        [
+          {
+            "node": "Generate Content - Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content - Claude": {
+      "main": [
+        [
+          {
+            "node": "Queue for Approval - Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue for Approval - Slack": {
+      "main": [
+        [
+          {
+            "node": "Publish to WordPress",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Publish to Meta (Facebook/Instagram)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Publish to Email List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to WordPress": {
+      "main": [
+        [
+          {
+            "node": "Log to Performance Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Meta (Facebook/Instagram)": {
+      "main": [
+        [
+          {
+            "node": "Log to Performance Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Email List": {
+      "main": [
+        [
+          {
+            "node": "Log to Performance Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Performance Database": {
+      "main": [
+        [
+          {
+            "node": "Performance Phase - Get Analytics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Performance Phase - Get CRM Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Performance Phase - Get Phone Calls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Performance Phase - Get Analytics": {
+      "main": [
+        [
+          {
+            "node": "Log Performance Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Performance Phase - Get CRM Data": {
+      "main": [
+        [
+          {
+            "node": "Log Performance Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Performance Phase - Get Phone Calls": {
+      "main": [
+        [
+          {
+            "node": "Log Performance Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Performance Metrics": {
+      "main": [
+        [
+          {
+            "node": "Grade Content - Claude Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grade Content - Claude Analysis": {
+      "main": [
+        [
+          {
+            "node": "Log Content Grade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Content Grade": {
+      "main": [
+        [
+          {
+            "node": "Optimize - Agent Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Optimize - Agent Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Report to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

@@ -1,0 +1,248 @@
+{
+  "contractor": {
+    "name": "CONTRACTOR_NAME",
+    "industry": "foundation-repair",
+    "region": "REGION",
+    "website": "WEBSITE_URL",
+    "phone": "PHONE_NUMBER",
+    "email": "BUSINESS_EMAIL"
+  },
+  "research": {
+    "enabled": true,
+    "sources": [
+      "perplexity-ai",
+      "competitor-websites",
+      "industry-blogs",
+      "reddit-r-homeimprovement",
+      "meta-ad-guru"
+    ],
+    "content_topics": [
+      "helical-piers",
+      "foundation-repair",
+      "installation-process",
+      "soil-conditions",
+      "regional-regulations",
+      "case-studies",
+      "cost-guides"
+    ],
+    "competitor_research": {
+      "enabled": true,
+      "watch_domains": [
+        "COMPETITOR_URL_1",
+        "COMPETITOR_URL_2",
+        "COMPETITOR_URL_3"
+      ],
+      "tone": "professional",
+      "approach": "learn-and-differentiate"
+    },
+    "accuracy_verification": {
+      "enabled": true,
+      "minimum_accuracy_score": 75,
+      "failure_action": "skip-and-report"
+    }
+  },
+  "content_generation": {
+    "enabled": true,
+    "model": "claude-3-5-sonnet-20241022",
+    "formats": [
+      "blog-post",
+      "video-script",
+      "social-media",
+      "email-newsletter",
+      "how-to-guide",
+      "case-study"
+    ],
+    "format_selection": {
+      "installation-process": "video",
+      "educational": "blog-post",
+      "competitor-analysis": "blog-post",
+      "quick-tips": "social-media",
+      "nurture-sequence": "email",
+      "proof-of-work": "case-study"
+    },
+    "voice_and_tone": {
+      "professional": true,
+      "educational": true,
+      "authoritative": true,
+      "no_spam": true,
+      "avoid_hype": true
+    },
+    "content_requirements": {
+      "include_unique_process": true,
+      "include_competitive_differentiation": true,
+      "include_cta": true,
+      "cta_type": "natural-conversation-flow",
+      "minimum_word_count": 800,
+      "include_sources": true
+    }
+  },
+  "approval_workflow": {
+    "enabled": true,
+    "approval_channel": "SLACK_CHANNEL_ID",
+    "required_approval": true,
+    "approval_timeout_hours": 24,
+    "auto_approve_threshold": 0.90,
+    "capture_approval_notes": true,
+    "approval_feedback_fields": [
+      "quality_score",
+      "accuracy_check",
+      "differentiation_score",
+      "cta_effectiveness",
+      "reason_for_decision",
+      "suggested_improvements"
+    ]
+  },
+  "publishing": {
+    "channels": [
+      "wordpress-blog",
+      "facebook",
+      "instagram",
+      "email-list"
+    ],
+    "wordpress": {
+      "enabled": true,
+      "api_url": "WORDPRESS_API_URL",
+      "api_token": "WORDPRESS_API_TOKEN",
+      "default_status": "publish",
+      "categories": [
+        "education",
+        "installation",
+        "our-process",
+        "case-studies"
+      ]
+    },
+    "meta": {
+      "enabled": true,
+      "business_token": "META_BUSINESS_TOKEN",
+      "facebook_page_id": "FACEBOOK_PAGE_ID",
+      "instagram_account_id": "INSTAGRAM_ACCOUNT_ID",
+      "use_ad_guru": true
+    },
+    "email": {
+      "enabled": true,
+      "provider": "convertkit",
+      "api_key": "CONVERTKIT_API_KEY",
+      "segment": "subscribers",
+      "send_frequency": "weekly"
+    }
+  },
+  "performance_tracking": {
+    "enabled": true,
+    "database": {
+      "type": "postgresql",
+      "connection_string": "DATABASE_URL"
+    },
+    "integrations": {
+      "google_analytics": {
+        "enabled": true,
+        "token": "GOOGLE_ANALYTICS_TOKEN",
+        "property_id": "GOOGLE_ANALYTICS_PROPERTY_ID",
+        "track_metrics": [
+          "page-views",
+          "unique-visitors",
+          "time-on-page",
+          "bounce-rate",
+          "conversion-events"
+        ]
+      },
+      "crm": {
+        "enabled": true,
+        "provider": "pipedrive",
+        "api_token": "CRM_API_TOKEN",
+        "track_fields": [
+          "meetings-scheduled",
+          "jobs-closed",
+          "revenue-amount",
+          "customer-source"
+        ]
+      },
+      "phone_tracking": {
+        "enabled": true,
+        "provider": "twilio",
+        "api_key": "TWILIO_API_KEY",
+        "phone_number": "PHONE_NUMBER",
+        "track_metrics": [
+          "call-count",
+          "call-duration",
+          "conversion-rate"
+        ]
+      },
+      "accounting": {
+        "enabled": false,
+        "provider": "quickbooks",
+        "api_token": "QUICKBOOKS_API_TOKEN",
+        "track_metrics": [
+          "jobs-paid-in-full",
+          "average-job-value",
+          "payment-received-date"
+        ]
+      }
+    },
+    "metrics": {
+      "primary": [
+        "clicks",
+        "phone-calls",
+        "scheduled-meetings",
+        "closed-jobs",
+        "revenue-received"
+      ],
+      "secondary": [
+        "cost-per-click",
+        "cost-per-call",
+        "cost-per-meeting",
+        "cost-per-job",
+        "roi-multiple"
+      ]
+    }
+  },
+  "content_grading": {
+    "enabled": true,
+    "grading_scale": "A+,A,B+,B,C,D,F",
+    "primary_metric": "revenue-per-dollar-spent",
+    "grading_factors": {
+      "revenue_generated": 0.5,
+      "leads_generated": 0.25,
+      "engagement": 0.15,
+      "accuracy": 0.1
+    }
+  },
+  "agent_learning": {
+    "enabled": true,
+    "learning_phase": "approval-criteria",
+    "approval_learning_threshold": 20,
+    "accuracy_required_for_auto_approve": 0.9,
+    "revenue_learning_threshold": 50,
+    "log_all_decisions": true,
+    "decision_log_table": "approval_learning_dataset",
+    "transition_to_auto_approve_at": {
+      "approvals_reviewed": 50,
+      "prediction_accuracy": 0.85,
+      "confidence_threshold": 0.9
+    }
+  },
+  "optimization": {
+    "enabled": true,
+    "review_frequency": "weekly",
+    "recommendations_channel": "SLACK_CHANNEL_ID",
+    "analysis_window_days": 30,
+    "double_down_threshold": "top-3-performers",
+    "kill_threshold": "bottom-3-performers",
+    "test_new_angles": true,
+    "a_b_test_rate": 0.2
+  },
+  "environment_variables": {
+    "CLAUDE_API_KEY": "your-claude-api-key",
+    "PERPLEXITY_API_KEY": "your-perplexity-api-key",
+    "META_BUSINESS_TOKEN": "your-meta-business-token",
+    "WORDPRESS_API_URL": "https://your-site.com/wp-json",
+    "WORDPRESS_API_TOKEN": "your-wordpress-api-token",
+    "CONVERTKIT_API_KEY": "your-convertkit-api-key",
+    "GOOGLE_ANALYTICS_TOKEN": "your-ga-token",
+    "GOOGLE_ANALYTICS_PROPERTY_ID": "your-ga-property-id",
+    "CRM_API_TOKEN": "your-crm-api-token",
+    "TWILIO_API_KEY": "your-twilio-api-key",
+    "DATABASE_URL": "postgresql://user:password@host:5432/dbname",
+    "SLACK_APPROVAL_CHANNEL": "C1234567890",
+    "N8N_WEBHOOK_URL": "https://your-n8n-instance.com/webhook"
+  }
+}
